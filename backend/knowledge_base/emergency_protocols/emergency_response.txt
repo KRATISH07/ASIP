@@ -1,0 +1,57 @@
+EMERGENCY RESPONSE PROTOCOLS — ASIP SOCIETY
+============================================
+
+Protocol 1: CRITICAL WATER SHORTAGE
+--------------------------------------
+Trigger: Tank level below 5% OR pressure below 0.5 bar
+
+Immediate Actions (0-15 minutes):
+1. Alert society manager via automated SMS and email
+2. Broadcast PA announcement: "Dear residents, we are experiencing a water shortage.
+   Our team is working to resolve this. Estimated restoration: [TIME]"
+3. Contact water tanker supplier (emergency contract number on file)
+4. Dispatch maintenance staff to pump room
+
+Short-term Actions (15-60 minutes):
+1. Arrange emergency water supply via tankers
+2. Notify Resident Welfare Association (RWA) committee
+3. Post physical notices at lift lobbies and notice boards
+4. Identify root cause (pump failure vs supply issue)
+
+Resolution Actions:
+1. Restore supply, test pressure at all floors
+2. Send resolution notification to all residents
+3. File incident report within 24 hours
+4. Update maintenance log
+
+Protocol 2: POWER OUTAGE
+--------------------------
+Trigger: Power consumption drops to 0 kW
+
+Immediate Actions (0-5 minutes):
+1. Automatic DG set activation
+2. Verify DG fuel level (minimum 50% required)
+3. Alert electrician on duty
+4. Check if outage is tower-specific or society-wide
+
+Communication (within 10 minutes):
+- SMS to all residents: "Power disruption detected. DG backup active. Team working on restoration."
+- Email to RWA with technical details
+
+Protocol 3: TANK OVERFLOW
+---------------------------
+Trigger: Tank level above 95%
+
+Immediate Actions:
+1. Close inlet valve immediately
+2. Alert pump operator
+3. Check overflow drain to prevent water damage
+4. Inspect float valve for failure
+
+Protocol 4: MULTI-INCIDENT ESCALATION
+---------------------------------------
+If two or more critical incidents occur simultaneously:
+1. Escalate to Society Committee President
+2. Contact backup contractors immediately
+3. Prioritize life-safety systems (lifts, emergency lighting)
+4. Consider engaging municipal corporation for support

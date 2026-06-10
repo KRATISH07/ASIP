@@ -1,0 +1,62 @@
+ELECTRICAL POWER SYSTEM — MAINTENANCE MANUAL
+============================================
+
+Section 1: Normal Operating Parameters
+---------------------------------------
+Normal power consumption range: 20% - 80% of rated capacity
+Critical overload threshold: 95% of rated capacity
+Power outage detection: consumption drops to 0 kW
+Monitoring frequency: every 2 minutes
+
+Section 2: Power Outage — Root Causes
+--------------------------------------
+1. MAIN CIRCUIT BREAKER TRIP
+   - Symptoms: Complete power loss to tower or floor
+   - Cause: Overload, short circuit, ground fault
+   - Action: Identify tripped breaker, reset after fault cleared, inspect wiring
+   - Estimated repair time: 30 minutes - 2 hours
+
+2. TRANSFORMER FAILURE
+   - Symptoms: Power loss to multiple towers simultaneously
+   - Cause: Overheating, insulation breakdown, lightning strike
+   - Action: Contact electricity board, switch to backup DG set
+   - Estimated repair time: 4-24 hours (utility dependent)
+
+3. DG SET FAILURE
+   - Symptoms: No backup power during outage
+   - Cause: Fuel shortage, battery failure, alternator fault
+   - Action: Check fuel level, inspect battery, start manual override
+   - Estimated repair time: 1-4 hours
+
+4. SUBSTATION FAULT
+   - Cause: Equipment age, moisture ingress, rodent damage
+   - Action: Isolate substation, call certified HV electrician
+   - Estimated repair time: 6-12 hours
+
+Section 3: Power Overload — Root Causes
+----------------------------------------
+1. EXCESSIVE APPLIANCE LOAD
+   - Cause: Multiple high-power appliances running simultaneously
+   - Action: Load shedding, notify residents to reduce usage, check load distribution
+
+2. FAULTY WIRING
+   - Cause: Damaged insulation, loose connections, undersized cables
+   - Action: Infrared thermal inspection, rewire affected sections
+
+3. POWER FACTOR ISSUES
+   - Cause: Inductive loads (motors, ACs), poor power factor correction
+   - Action: Install/service power factor correction capacitors
+
+Section 4: Emergency Procedures
+---------------------------------
+1. Activate backup DG set within 60 seconds of outage
+2. Ensure lifts are safely parked at ground floor
+3. Activate emergency lighting in corridors and staircases
+4. Notify residents of estimated restoration time
+5. Contact electricity board for grid faults
+
+Section 5: Contractor Requirements
+------------------------------------
+Power outages requiring licensed electricians (Grade A or B license)
+Transformer work: HV-certified contractor only
+DG maintenance: OEM-authorized service center preferred

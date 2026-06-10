@@ -1,0 +1,61 @@
+WATER PRESSURE SYSTEM — MAINTENANCE MANUAL
+==========================================
+
+Section 1: Normal Operating Parameters
+---------------------------------------
+Normal water pressure range: 2.0 - 6.0 bar
+Critical low pressure threshold: 0.5 bar
+Critical high pressure threshold: 8.0 bar
+Pressure monitoring frequency: every 5 minutes
+
+Section 2: Low Water Pressure — Root Causes
+--------------------------------------------
+1. PUMP FAILURE
+   - Symptoms: sudden pressure drop below 1.0 bar
+   - Cause: Motor burnout, impeller damage, electrical fault
+   - Action: Inspect pump motor, check electrical connections, replace impeller if damaged
+   - Estimated repair time: 4-8 hours
+
+2. PIPE BURST OR LEAK
+   - Symptoms: gradual pressure drop with wet patches or water logging
+   - Cause: Corrosion, physical damage, freezing, high pressure surge
+   - Action: Shut main valve, identify burst location, replace damaged section
+   - Estimated repair time: 2-6 hours
+
+3. VALVE MALFUNCTION
+   - Symptoms: pressure drop in specific zone
+   - Cause: Stuck valve, sediment buildup, worn gasket
+   - Action: Inspect isolation valves, flush sediment, replace gaskets
+   - Estimated repair time: 1-3 hours
+
+4. FILTER BLOCKAGE
+   - Symptoms: gradual pressure reduction over days/weeks
+   - Cause: Sediment accumulation, mineral deposits
+   - Action: Clean or replace pressure filters, flush lines
+   - Estimated repair time: 1-2 hours
+
+Section 3: High Water Pressure — Root Causes
+---------------------------------------------
+1. PRESSURE REGULATOR FAILURE
+   - Cause: Worn diaphragm, spring failure, debris in regulator
+   - Action: Replace pressure reducing valve (PRV), test with gauge
+   - Critical: High pressure can burst pipes — act immediately
+
+2. MUNICIPAL SUPPLY SURGE
+   - Cause: External supply pressure spikes
+   - Action: Install or repair pressure limiting valve at entry point
+
+Section 4: Emergency Procedures
+---------------------------------
+1. Shut main water supply valve immediately
+2. Notify all residents via PA system
+3. Contact on-call plumber
+4. Open emergency water tanks (if available)
+5. Document incident with timestamp and sensor readings
+
+Section 5: Preventive Maintenance Schedule
+-------------------------------------------
+Monthly: Visual inspection of pumps and valves
+Quarterly: Pressure gauge calibration
+Semi-annual: Filter cleaning/replacement
+Annual: Full pipeline inspection, pump service

@@ -1,0 +1,61 @@
+HISTORICAL INCIDENTS — ASIP SOCIETY
+=====================================
+
+Incident #001 — 2025-03-14
+Type: Water Pressure Drop
+Severity: Critical
+Tower: Tower A
+Root Cause: Main booster pump motor burned out due to single-phase fault
+Resolution: Motor replaced by AquaFix Pro. Repair time: 5 hours.
+Cost: INR 12,500
+Lessons Learned: Install phase-failure relays on all pump motors. Check monthly.
+
+Incident #002 — 2025-04-22
+Type: Power Outage
+Severity: High
+Towers: Tower A, Tower B, Tower C
+Root Cause: Substation LT panel fuse blown due to rodent damage
+Resolution: PowerSure Services replaced fuse and sealed rodent entry points. 3.5 hours.
+Cost: INR 8,200
+Lessons Learned: Quarterly rodent proofing of electrical rooms mandatory.
+
+Incident #003 — 2025-05-10
+Type: Tank Overflow
+Severity: Medium
+Tower: Tower B
+Root Cause: Float valve malfunctioned — stuck in open position
+Resolution: Float valve replaced. 2 hours. CityFix General.
+Cost: INR 3,400
+Lessons Learned: Float valves to be inspected semi-annually.
+
+Incident #004 — 2025-07-03
+Type: Water Shortage
+Severity: High
+Tower: Tower C
+Root Cause: Municipal supply disruption + no tank reserve
+Resolution: Emergency tanker arranged. Supply restored in 4 hours.
+Cost: INR 22,000 (tanker)
+Lessons Learned: Maintain minimum 30% tank reserve at all times as policy.
+
+Incident #005 — 2025-09-18
+Type: Power Overload
+Severity: Critical
+Tower: Tower A
+Root Cause: DG set overloaded during grid outage — too many high-power ACs
+Resolution: Load shedding by floor rotation. Fixed in 1 hour.
+Cost: INR 0 (operational fix)
+Lessons Learned: Implement AC usage guidelines during DG operation.
+
+Incident #006 — 2025-11-02
+Type: Water Pressure Drop
+Severity: High
+Tower: Tower C
+Root Cause: Pressure regulator valve worn out
+Resolution: PRV replaced by AquaFix Pro. 3 hours.
+Cost: INR 6,800
+Lessons Learned: PRV lifespan is 5-7 years — schedule proactive replacement.
+
+Contractor Performance Summary:
+- AquaFix Pro: 2 jobs, 100% success rate, avg 4 hrs
+- PowerSure Services: 1 job, 100% success rate, 3.5 hrs
+- CityFix General: 1 job, 100% success rate, 2 hrs
