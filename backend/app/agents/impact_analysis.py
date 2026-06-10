@@ -57,6 +57,24 @@ async def impact_analysis_agent(state: ASIPState) -> ASIPState:
         "priority": priority,
     }
 
+    # Enrich impact with predictive estimates (memory-enhanced) when available.
+    try:
+        from app.services.predictive_service import predict_impact
+
+        preds = await predict_impact(incident_event or {}, sensor_data or {}, k=5)
+        # Attach full prediction under `impact_prediction` and merge key fields
+        impact["impact_prediction"] = preds
+        # Overlay a few convenient fields so downstream agents (contractor selection)
+        # can consume predictions transparently via `impact`.
+        if preds.get("predicted_residents"):
+            impact["estimated_residents"] = int(preds.get("predicted_residents"))
+        if preds.get("predicted_outage_hrs"):
+            impact["predicted_outage_hrs"] = float(preds.get("predicted_outage_hrs"))
+        impact["prediction_confidence"] = float(preds.get("confidence_score", 0.0))
+    except Exception as e:
+        # If prediction service fails, continue with heuristic impact only
+        logger.warning("Predictive service failed; continuing with heuristic impact", error=str(e))
+
     logger.info(
         "Impact calculated",
         residents=estimated_residents,
