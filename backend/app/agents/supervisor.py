@@ -40,6 +40,12 @@ Impact:
 - Severity Score: {severity_score}
 - Priority: {priority}
 
+Predictive Analysis (confidence: {prediction_confidence}):
+- Predicted Residents Affected: {predicted_residents}
+- Predicted Outage Hours: {predicted_outage_hrs}
+- Escalation Probability: {escalation_probability}
+- SLA Breach Risk: {sla_breach_risk}
+
 Contractor Assignment:
 - Contractor: {contractor_name}
 - Estimated Cost: INR {cost}
@@ -77,12 +83,20 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
     residents = 0
     severity_score = 0.0
     priority = "medium"
+    impact_prediction: dict = {}
     if "impact_agent" in agent_outputs:
         imp = agent_outputs["impact_agent"].get("output") or {}
         if isinstance(imp, dict):
             residents = imp.get("estimated_residents", 0)
             severity_score = imp.get("severity_score", 0.0)
             priority = imp.get("priority", "medium")
+            # Defensive extraction — impact_prediction may not always be present
+            impact_prediction = imp.get("impact_prediction") or {}
+
+    # Also check the raw state impact field for the prediction block
+    if not impact_prediction:
+        impact_state = state.get("impact") or {}
+        impact_prediction = impact_state.get("impact_prediction") or {}
 
     # Contractor
     contractor = state.get("contractor_recommendation") or {}
@@ -127,6 +141,12 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
             "cost": contractor.get("estimated_cost", 0),
             "time_hrs": contractor.get("estimated_time_hrs", 0),
             "notification_count": len(notifications),
+            # Predictive analysis fields for LLM reasoning
+            "prediction_confidence": impact_prediction.get("confidence_score", 0.0),
+            "predicted_residents":   impact_prediction.get("predicted_residents", residents),
+            "predicted_outage_hrs":  impact_prediction.get("predicted_outage_hrs", 0.0),
+            "escalation_probability": impact_prediction.get("escalation_probability", 0.0),
+            "sla_breach_risk":       impact_prediction.get("sla_breach_risk", 0.0),
         }
         try:
             final_report: FinalReport = await invoke_chain(SUPERVISOR_PROMPT, llm, JsonOutputParser(), payload)
@@ -142,6 +162,18 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
             "action_plan": recommended_action or "Manual inspection required",
             "estimated_resolution_hrs": contractor.get("estimated_time_hrs", 4.0),
             "priority": priority,
+        }
+
+    # Attach the prediction block to the final report (defensive — never crashes)
+    if impact_prediction:
+        final_report["prediction"] = {
+            "predicted_residents":       impact_prediction.get("predicted_residents", residents),
+            "predicted_outage_hrs":      impact_prediction.get("predicted_outage_hrs", 0.0),
+            "estimated_cost":            impact_prediction.get("estimated_repair_cost", 0.0),
+            "estimated_contractor_cost": impact_prediction.get("estimated_contractor_cost", 0.0),
+            "confidence_score":          impact_prediction.get("confidence_score", 0.0),
+            "escalation_probability":    impact_prediction.get("escalation_probability", 0.0),
+            "sla_breach_risk":           impact_prediction.get("sla_breach_risk", 0.0),
         }
 
     # Record supervisor decision summary

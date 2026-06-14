@@ -60,8 +60,22 @@ async def impact_analysis_agent(state: ASIPState) -> ASIPState:
     # Enrich impact with predictive estimates (memory-enhanced) when available.
     try:
         from app.services.predictive_service import predict_impact
+        from app.services import memory_service as _mem_svc
 
-        preds = await predict_impact(incident_event or {}, sensor_data or {}, k=5)
+        # Pre-fetch historical context so predictive_service stays a pure function
+        historical_context = []
+        try:
+            historical_context = await _mem_svc.retrieve_similar_incidents(
+                {"incident_type": (incident_event or {}).get("type")}, k=5
+            ) or []
+        except Exception as mem_err:
+            logger.warning("Impact agent: memory retrieval failed", error=str(mem_err))
+
+        preds = await predict_impact(
+            incident_event or {},
+            sensor_data=sensor_data or {},
+            historical_context=historical_context,
+        )
         # Attach full prediction under `impact_prediction` and merge key fields
         impact["impact_prediction"] = preds
         # Overlay a few convenient fields so downstream agents (contractor selection)
