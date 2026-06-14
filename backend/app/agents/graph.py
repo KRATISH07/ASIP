@@ -19,6 +19,7 @@ from app.agents.infrastructure import infrastructure_agent
 from app.agents.impact_analysis import impact_analysis_agent
 from app.agents.contractor import contractor_agent
 from app.agents.communication import communication_agent
+from app.agents.decision import decision_agent
 from app.agents.supervisor import supervisor_agent, supervisor_decider
 from typing import Callable, Dict, Any
 
@@ -33,6 +34,7 @@ def build_graph() -> StateGraph:
         "impact_agent",
         "contractor_agent",
         "communication_agent",
+        "decision_agent",
     ]
 
     def _extract_agent_output(agent_key: str, state: ASIPState) -> Dict[str, Any]:
@@ -81,6 +83,16 @@ def build_graph() -> StateGraph:
                 "output": notifs,
             }
 
+        if agent_key == "decision_agent":
+            dec = state.get("autonomous_decision") or {}
+            return {
+                "agent_name": "decision_agent",
+                "decision": "escalate" if dec.get("requires_immediate_escalation") else "monitor",
+                "confidence": float(dec.get("estimated_risk_score", 0.0)),
+                "reasoning": dec.get("decision_reasoning"),
+                "output": dec,
+            }
+
         # Fallback generic record
         return {"agent_name": agent_key, "decision": None, "confidence": 0.0, "reasoning": None, "output": None}
 
@@ -113,6 +125,7 @@ def build_graph() -> StateGraph:
     graph.add_node("impact_agent", _wrap_agent(impact_analysis_agent, "impact_agent"))
     graph.add_node("contractor_agent", _wrap_agent(contractor_agent, "contractor_agent"))
     graph.add_node("communication_agent", _wrap_agent(communication_agent, "communication_agent"))
+    graph.add_node("decision_agent", _wrap_agent(decision_agent, "decision_agent"))
     graph.add_node("supervisor_agent", supervisor_agent)
 
     # Entry point

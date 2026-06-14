@@ -83,12 +83,13 @@ async def test_water_incident_supervisor_routing():
 
         final_state = await graph.ainvoke(initial_state)
 
-    # Supervisor should have selected the full water workflow
+    # Supervisor should have selected the full water workflow (including V4 decision_agent)
     assert final_state.get("selected_agents") == [
         "infrastructure_agent",
         "impact_agent",
         "contractor_agent",
         "communication_agent",
+        "decision_agent",
     ]
     assert set(final_state.get("completed_agents", [])) >= set(final_state.get("selected_agents", []))
     assert final_state.get("final_report") is not None
@@ -136,7 +137,8 @@ async def test_contractor_only_request():
 
         final_state = await graph.ainvoke(initial_state)
 
-    assert final_state.get("selected_agents") == ["contractor_agent"]
+    # contractor_review also gets decision_agent in V4
+    assert final_state.get("selected_agents") == ["contractor_agent", "decision_agent"]
     assert "contractor_agent" in final_state.get("completed_agents", [])
     assert final_state.get("final_report") is not None
 

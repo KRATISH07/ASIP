@@ -54,6 +54,17 @@ class FinalReport(TypedDict):
     priority: str
 
 
+class AutonomousDecision(TypedDict):
+    requires_immediate_escalation: bool
+    should_notify_residents: bool
+    notification_priority: str
+    should_activate_backup_system: bool
+    auto_dispatch_contractor: bool
+    recommended_contractor: Optional[str]
+    estimated_risk_score: float
+    decision_reasoning: str
+
+
 class AgentOutput(TypedDict):
     agent_name: str
     decision: Optional[str]
@@ -79,3 +90,6 @@ class ASIPState(TypedDict):
     completed_agents: Optional[List[str]]
     agent_outputs: Optional[Dict[str, AgentOutput]]
     supervisor_decisions: Optional[Dict[str, Any]]
+
+    # V4 Autonomous Decision Engine
+    autonomous_decision: Optional[Dict[str, Any]]

@@ -15,6 +15,8 @@ from app.api.notifications import router as notifications_router
 from app.api.agent_logs import router as agent_logs_router
 from app.api.dashboard import router as dashboard_router
 from app.api.predict import router as predict_router
+from app.api.decision import router as decision_router
+from app.api.feedback import router as feedback_router
 
 configure_logging()
 logger = get_logger("main")
@@ -80,6 +82,8 @@ app.include_router(notifications_router)
 app.include_router(agent_logs_router)
 app.include_router(dashboard_router)
 app.include_router(predict_router)
+app.include_router(decision_router)
+app.include_router(feedback_router)
 
 
 @app.get("/health", tags=["Health"])

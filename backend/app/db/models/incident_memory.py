@@ -20,3 +20,10 @@ class IncidentMemory(Base):
     contractor_used: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     repair_duration_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     resolution_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # V4 Learning Loop — stored after incident resolution for feedback scoring
+    predicted_outage_hrs: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    actual_outage_hrs: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    predicted_cost: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    actual_cost: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    decision_accuracy: Mapped[Optional[float]] = mapped_column(Float, nullable=True)

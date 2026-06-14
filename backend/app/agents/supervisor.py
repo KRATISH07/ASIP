@@ -46,6 +46,13 @@ Predictive Analysis (confidence: {prediction_confidence}):
 - Escalation Probability: {escalation_probability}
 - SLA Breach Risk: {sla_breach_risk}
 
+Autonomous Decision:
+- Immediate Escalation Required: {escalation_required}
+- Resident Notification Required: {notify_residents}
+- Backup System Activation: {backup_activation}
+- Contractor Auto-Dispatch: {auto_dispatch}
+- Risk Score: {risk_score}
+
 Contractor Assignment:
 - Contractor: {contractor_name}
 - Estimated Cost: INR {cost}
@@ -83,20 +90,12 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
     residents = 0
     severity_score = 0.0
     priority = "medium"
-    impact_prediction: dict = {}
     if "impact_agent" in agent_outputs:
         imp = agent_outputs["impact_agent"].get("output") or {}
         if isinstance(imp, dict):
             residents = imp.get("estimated_residents", 0)
             severity_score = imp.get("severity_score", 0.0)
             priority = imp.get("priority", "medium")
-            # Defensive extraction — impact_prediction may not always be present
-            impact_prediction = imp.get("impact_prediction") or {}
-
-    # Also check the raw state impact field for the prediction block
-    if not impact_prediction:
-        impact_state = state.get("impact") or {}
-        impact_prediction = impact_state.get("impact_prediction") or {}
 
     # Contractor
     contractor = state.get("contractor_recommendation") or {}
@@ -112,6 +111,13 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
         if isinstance(comm_out, list):
             notifications = comm_out
 
+    # V4: Autonomous Decision — defensive extraction (two fallback paths)
+    autonomous_decision: dict = state.get("autonomous_decision") or {}
+    if not autonomous_decision and "decision_agent" in agent_outputs:
+        autonomous_decision = (agent_outputs["decision_agent"].get("output") or {})
+        if not isinstance(autonomous_decision, dict):
+            autonomous_decision = {}
+
     # Fallback to state fields if agent_outputs were not available
     if not probable_cause or not recommended_action:
         diagnosis_state = state.get("diagnosis") or {}
@@ -125,8 +131,13 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
         import importlib
         memory_service = importlib.import_module("app.services.memory_service")
         hist = await memory_service.retrieve_similar_incidents({"incident_type": incident_event.get("type")}, k=3) or []
+
+        # Impact prediction fields (from V3)
+        impact_prediction = (state.get("impact") or {}).get("impact_prediction") or {}
+        if not impact_prediction and "impact_agent" in agent_outputs:
+            impact_prediction = ((agent_outputs["impact_agent"].get("output") or {}).get("impact_prediction") or {})
+
         payload = {
-            # Include historical incidents for supervisor reasoning
             "history": "\n\n".join([json.dumps(h) for h in hist]),
             "incident_type": incident_event.get("type", "Unknown"),
             "severity": incident_event.get("severity", "Unknown"),
@@ -141,12 +152,18 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
             "cost": contractor.get("estimated_cost", 0),
             "time_hrs": contractor.get("estimated_time_hrs", 0),
             "notification_count": len(notifications),
-            # Predictive analysis fields for LLM reasoning
-            "prediction_confidence": impact_prediction.get("confidence_score", 0.0),
-            "predicted_residents":   impact_prediction.get("predicted_residents", residents),
-            "predicted_outage_hrs":  impact_prediction.get("predicted_outage_hrs", 0.0),
+            # V3 predictive fields
+            "prediction_confidence":  impact_prediction.get("confidence_score", 0.0),
+            "predicted_residents":    impact_prediction.get("predicted_residents", residents),
+            "predicted_outage_hrs":   impact_prediction.get("predicted_outage_hrs", 0.0),
             "escalation_probability": impact_prediction.get("escalation_probability", 0.0),
-            "sla_breach_risk":       impact_prediction.get("sla_breach_risk", 0.0),
+            "sla_breach_risk":        impact_prediction.get("sla_breach_risk", 0.0),
+            # V4 autonomous decision fields
+            "escalation_required": autonomous_decision.get("requires_immediate_escalation", False),
+            "notify_residents":    autonomous_decision.get("should_notify_residents", False),
+            "backup_activation":   autonomous_decision.get("should_activate_backup_system", False),
+            "auto_dispatch":       autonomous_decision.get("auto_dispatch_contractor", False),
+            "risk_score":          autonomous_decision.get("estimated_risk_score", 0.0),
         }
         try:
             final_report: FinalReport = await invoke_chain(SUPERVISOR_PROMPT, llm, JsonOutputParser(), payload)
@@ -164,16 +181,31 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
             "priority": priority,
         }
 
-    # Attach the prediction block to the final report (defensive — never crashes)
-    if impact_prediction:
+    # Attach the prediction block (V3) — defensive, never crashes
+    impact_prediction_for_report = (state.get("impact") or {}).get("impact_prediction") or {}
+    if not impact_prediction_for_report and "impact_agent" in agent_outputs:
+        impact_prediction_for_report = ((agent_outputs["impact_agent"].get("output") or {}).get("impact_prediction") or {})
+    if impact_prediction_for_report:
         final_report["prediction"] = {
-            "predicted_residents":       impact_prediction.get("predicted_residents", residents),
-            "predicted_outage_hrs":      impact_prediction.get("predicted_outage_hrs", 0.0),
-            "estimated_cost":            impact_prediction.get("estimated_repair_cost", 0.0),
-            "estimated_contractor_cost": impact_prediction.get("estimated_contractor_cost", 0.0),
-            "confidence_score":          impact_prediction.get("confidence_score", 0.0),
-            "escalation_probability":    impact_prediction.get("escalation_probability", 0.0),
-            "sla_breach_risk":           impact_prediction.get("sla_breach_risk", 0.0),
+            "predicted_residents":       impact_prediction_for_report.get("predicted_residents", residents),
+            "predicted_outage_hrs":      impact_prediction_for_report.get("predicted_outage_hrs", 0.0),
+            "estimated_cost":            impact_prediction_for_report.get("estimated_repair_cost", 0.0),
+            "estimated_contractor_cost": impact_prediction_for_report.get("estimated_contractor_cost", 0.0),
+            "confidence_score":          impact_prediction_for_report.get("confidence_score", 0.0),
+            "escalation_probability":    impact_prediction_for_report.get("escalation_probability", 0.0),
+            "sla_breach_risk":           impact_prediction_for_report.get("sla_breach_risk", 0.0),
+        }
+
+    # Attach the autonomous decision block (V4) — defensive, never crashes
+    if autonomous_decision:
+        final_report["decision"] = {
+            "auto_dispatch":          autonomous_decision.get("auto_dispatch_contractor", False),
+            "backup_activation":      autonomous_decision.get("should_activate_backup_system", False),
+            "risk_score":             autonomous_decision.get("estimated_risk_score", 0.0),
+            "requires_escalation":    autonomous_decision.get("requires_immediate_escalation", False),
+            "notify_residents":       autonomous_decision.get("should_notify_residents", False),
+            "notification_priority":  autonomous_decision.get("notification_priority", "low"),
+            "recommended_contractor": autonomous_decision.get("recommended_contractor"),
         }
 
     # Record supervisor decision summary
@@ -205,20 +237,21 @@ async def supervisor_decider(state: ASIPState) -> ASIPState:
     selected: list = []
     req = state.get("sensor_data", {}).get("request_type")
     if req == "contractor_review":
-        selected = ["contractor_agent"]
+        # Contractor-only flow still benefits from a decision pass
+        selected = ["contractor_agent", "decision_agent"]
     elif req == "communication_only":
         selected = ["communication_agent"]
     elif incident_event.get("severity") == "low":
-        # Minor incidents -> only notify
-        selected = ["communication_agent"]
+        # Minor incidents → notify + decision (no heavy infra analysis)
+        selected = ["communication_agent", "decision_agent"]
     else:
         itype = incident_event.get("type", "")
         if "water" in itype or "tank" in itype:
-            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent"]
+            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent", "decision_agent"]
         elif "power" in itype:
-            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent"]
+            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent", "decision_agent"]
         else:
-            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent"]
+            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent", "decision_agent"]
 
     # Initialize orchestration fields
     base = {"selected_agents": selected, "completed_agents": [], "agent_outputs": {}, "supervisor_decisions": {}}
