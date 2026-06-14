@@ -21,6 +21,7 @@ async def predict_impact(
     sensor_data: Optional[Dict[str, Any]] = None,
     historical_context: Optional[List[Dict[str, Any]]] = None,
     k: int = 5,
+    correction_factors: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Return a dict of predictions for the given incident.
 
@@ -29,15 +30,17 @@ async def predict_impact(
     incident_event:
         Dict containing at minimum ``type`` and ``severity``.
     sensor_data:
-        Optional infrastructure context (tower id, etc.). Not used in the
-        core calculation but kept for API compatibility.
+        Optional infrastructure context (tower id, etc.).
     historical_context:
-        Pre-fetched list of similar historical incident dicts. When ``None``
-        (e.g. called from agents that already injected memory), the function
-        falls back entirely to severity heuristics.
+        Pre-fetched list of similar historical incident dicts.
     k:
-        Kept for backwards-compatible signature; not used when
-        ``historical_context`` is supplied externally.
+        Kept for backwards-compatible signature.
+    correction_factors:
+        Optional output of learning_service.compute_correction_factors().
+        When provided, outage and cost predictions are scaled by the
+        computed correction multipliers and confidence is adapted from
+        historical accuracy rather than the count-based heuristic.
+        When None (default), behavior is identical to V3.
     """
     incident_event = incident_event or {}
     sensor_data = sensor_data or {}
@@ -87,9 +90,34 @@ async def predict_impact(
     # Time-to-resolution risk: normalized outage hours
     time_to_resolution_risk = min(0.99, predicted_outage_hrs / max(1.0, predicted_outage_hrs + 4.0))
 
-    # Confidence: more history → higher confidence (capped at 0.95)
+    # Confidence: use empirically adapted value from learning engine when available.
+    # Otherwise fall back to count-based heuristic (preserved for backward compat).
     hist_count = len(history)
-    confidence = min(0.95, 0.30 + 0.12 * hist_count)
+    cf = correction_factors or {}
+    adapted_confidence = cf.get("adapted_confidence")  # None when < MIN_SAMPLES
+
+    # Apply learning corrections when the engine has enough data
+    if cf.get("correction_applied"):
+        raw_outage = predicted_outage_hrs
+        raw_cost   = estimated_repair_cost
+        predicted_outage_hrs  = round(predicted_outage_hrs  * cf.get("outage_correction_factor", 1.0), 2)
+        estimated_repair_cost = round(estimated_repair_cost * cf.get("cost_correction_factor",   1.0), 2)
+        estimated_contractor_cost = round(estimated_repair_cost * 1.15, 2)
+        logger.info(
+            "Learning correction applied",
+            outage_before=raw_outage,
+            outage_after=predicted_outage_hrs,
+            cost_before=raw_cost,
+            cost_after=estimated_repair_cost,
+            outage_cf=cf.get("outage_correction_factor"),
+            cost_cf=cf.get("cost_correction_factor"),
+        )
+
+    if adapted_confidence is not None:
+        confidence = adapted_confidence
+    else:
+        # V3 fallback: more history → higher confidence (fake but consistent)
+        confidence = min(0.95, 0.30 + 0.12 * hist_count)
 
     reasoning_parts = []
     if hist_count:

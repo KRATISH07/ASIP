@@ -78,6 +78,7 @@ async def store_feedback(
         predicted_outage_hrs = mem.predicted_outage_hrs
         predicted_cost = mem.predicted_cost
 
+        # V4 decision accuracy (MAPE-based composite)
         accuracy = _compute_decision_accuracy(
             predicted_outage_hrs=predicted_outage_hrs,
             actual_outage_hrs=actual_outage_hrs,
@@ -85,9 +86,24 @@ async def store_feedback(
             actual_cost=actual_cost,
         )
 
-        mem.actual_outage_hrs  = actual_outage_hrs
-        mem.actual_cost        = actual_cost
-        mem.decision_accuracy  = accuracy
+        # V5 prediction accuracy — derived from learning_service math
+        # (outage accuracy only, separate from composite decision_accuracy)
+        prediction_accuracy: Optional[float] = None
+        if predicted_outage_hrs is not None and actual_outage_hrs is not None:
+            try:
+                from app.services.learning_service import (
+                    _signed_error_ratio,
+                    _accuracy_from_error,
+                )
+                err = _signed_error_ratio(float(predicted_outage_hrs), float(actual_outage_hrs))
+                prediction_accuracy = round(_accuracy_from_error(err), 3)
+            except Exception:
+                pass
+
+        mem.actual_outage_hrs   = actual_outage_hrs
+        mem.actual_cost         = actual_cost
+        mem.decision_accuracy   = accuracy
+        mem.prediction_accuracy = prediction_accuracy
 
         await db.commit()
         await db.refresh(mem)
@@ -98,14 +114,16 @@ async def store_feedback(
         actual_outage_hrs=actual_outage_hrs,
         actual_cost=actual_cost,
         decision_accuracy=accuracy,
+        prediction_accuracy=prediction_accuracy,
     )
 
     return {
-        "updated":             True,
-        "incident_uuid":       str(incident_uuid),
+        "updated":              True,
+        "incident_uuid":        str(incident_uuid),
         "predicted_outage_hrs": predicted_outage_hrs,
-        "actual_outage_hrs":   actual_outage_hrs,
-        "predicted_cost":      predicted_cost,
-        "actual_cost":         actual_cost,
-        "decision_accuracy":   accuracy,
+        "actual_outage_hrs":    actual_outage_hrs,
+        "predicted_cost":       predicted_cost,
+        "actual_cost":          actual_cost,
+        "decision_accuracy":    accuracy,
+        "prediction_accuracy":  prediction_accuracy,
     }

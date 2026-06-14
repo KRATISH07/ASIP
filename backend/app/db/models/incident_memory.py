@@ -27,3 +27,6 @@ class IncidentMemory(Base):
     predicted_cost: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     actual_cost: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     decision_accuracy: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
+    # V5 Learning Engine — outage/cost prediction accuracy (separate from decision accuracy)
+    prediction_accuracy: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
