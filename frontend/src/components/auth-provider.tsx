@@ -161,15 +161,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Render Login view if unauthenticated
   if (!token) {
     return (
-      <div className="relative min-h-screen w-screen flex items-center justify-center bg-[#faf6f0] overflow-y-auto px-4 py-12">
-        {/* Decorative backgrounds */}
-        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-300/15 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-orange-200/15 rounded-full blur-3xl"></div>
+      <div className="relative min-h-screen w-screen flex items-center justify-center bg-[#fefcf3] overflow-y-auto px-4 py-12">
+        {/* Rich golden cream decorative glow */}
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-amber-300/25 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] bg-yellow-400/20 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="relative w-full max-w-4xl bg-white border border-stone-200 rounded-3xl overflow-hidden shadow-xl shadow-stone-200/50 flex flex-col md:flex-row">
+        <div className="relative w-full max-w-4xl bg-white border border-amber-200/80 rounded-3xl overflow-hidden shadow-2xl shadow-amber-900/10 flex flex-col md:flex-row">
           
           {/* Presets / Role switch options on the left */}
-          <div className="flex-1 p-8 bg-stone-50 border-r border-stone-200 flex flex-col justify-between">
+          <div className="flex-1 p-8 bg-[#fffef9] border-r border-amber-100 flex flex-col justify-between">
             <div>
               <h2 className="text-xl font-bold text-stone-800 tracking-tight">ASIP Accounts Seeding</h2>
               <p className="text-xs text-stone-500 mt-2 mb-6">

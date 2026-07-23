@@ -28,21 +28,21 @@ const SEVERITY_BG: Record<string, string> = {
 };
 
 function KPICard({
-  title, value, subtitle, icon: Icon, gradient,
+  title, value, subtitle, icon: Icon,
 }: {
   title: string; value: number | string; subtitle?: string;
-  icon: React.ElementType; gradient: string;
+  icon: React.ElementType; gradient?: string;
 }) {
   return (
-    <div className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${gradient} p-5`}>
+    <div className="cream-card cream-card-hover relative overflow-hidden rounded-2xl p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-xs font-medium text-stone-500 uppercase tracking-wider">{title}</p>
-          <p className="mt-2 text-4xl font-bold text-stone-800 tabular-nums">{value}</p>
-          {subtitle && <p className="mt-1 text-xs text-stone-500">{subtitle}</p>}
+          <p className="text-xs font-bold text-amber-800/70 uppercase tracking-wider">{title}</p>
+          <p className="mt-2 text-4xl font-extrabold text-stone-900 tracking-tight tabular-nums">{value}</p>
+          {subtitle && <p className="mt-1.5 text-xs font-medium text-stone-500">{subtitle}</p>}
         </div>
-        <div className="rounded-xl bg-white/60 p-2.5">
-          <Icon className="h-5 w-5 text-stone-600" />
+        <div className="rounded-2xl bg-amber-100/60 border border-amber-200 p-3 shadow-xs text-amber-700">
+          <Icon className="h-5 w-5" />
         </div>
       </div>
     </div>
@@ -51,13 +51,13 @@ function KPICard({
 
 function SeverityBadge({ severity }: { severity: string }) {
   const colors: Record<string, string> = {
-    critical: "bg-red-100 text-rose-700 border-red-200",
-    high: "bg-orange-100 text-orange-700 border-orange-200",
-    medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    low: "bg-green-100 text-emerald-700 border-green-200",
+    critical: "bg-red-50 text-red-700 border-red-200/80 font-bold",
+    high: "bg-amber-100 text-amber-800 border-amber-300 font-bold",
+    medium: "bg-yellow-50 text-yellow-800 border-yellow-200/80 font-semibold",
+    low: "bg-emerald-50 text-emerald-800 border-emerald-200/80 font-medium",
   };
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${colors[severity] || "bg-stone-100 text-stone-500"}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-wider ${colors[severity] || "bg-stone-100 text-stone-600"}`}>
       {severity}
     </span>
   );
