@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-ASIP Sandbox Production Launcher (run_asip.py)
-----------------------------------------------
+ASIP Static Sandbox Production Launcher (run_asip.py)
+------------------------------------------------------
 Zero-Database, Pre-compiled Static Production Mode for Mac Air M4.
 Uses 0% CPU, <25MB RAM, requires no database connection, and guarantees 0% crash risk.
 
@@ -21,6 +21,17 @@ FRONTEND_DIR = ROOT_DIR / "frontend"
 
 processes = []
 
+def kill_port(port: int):
+    """Kills any process currently occupying a given TCP port."""
+    try:
+        res = subprocess.run(["lsof", "-i", f":{port}", "-t"], capture_output=True, text=True)
+        pids = res.stdout.strip().split()
+        for pid in pids:
+            if pid:
+                subprocess.run(["kill", "-9", pid], capture_output=True)
+    except Exception:
+        pass
+
 def cleanup(signum=None, frame=None):
     print("\nShutting down ASIP Sandbox Server...")
     for p in processes:
@@ -35,6 +46,10 @@ def cleanup(signum=None, frame=None):
 def main():
     signal.signal(signal.SIGINT, cleanup)
     signal.signal(signal.SIGTERM, cleanup)
+
+    # Automatically free port 3000 if blocked
+    kill_port(3000)
+    time.sleep(0.5)
 
     print("====================================================================")
     print(" 🏛️   ASIP — AI Society Intelligence Platform (Sandbox Demo Mode)")
