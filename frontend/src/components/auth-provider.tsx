@@ -128,6 +128,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         sessionStorage.setItem("asip_demo_role", dummyRole);
         setToken(dummyToken);
         setUser(dummyProfile);
+        
+        const targetUrl = dummyRole === "resident" ? "/residence" : dummyRole === "sensor_gateway" ? "/sensor-buffer" : "/";
+        window.location.href = targetUrl;
         return;
       }
 
@@ -216,8 +219,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 <Key className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-stone-800 tracking-tight">Access Ops Center</h1>
-              <p className="text-xs text-stone-500 mt-1.5">Enter your credentials below to log in manually.</p>
+              <p className="text-xs text-stone-500 mt-1.5">Enter your credentials below or launch Instant Sandbox Demo Mode.</p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => login("admin@asip.ai", "password123")}
+              className="w-full mb-4 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white font-semibold text-xs shadow-md shadow-amber-300/30 transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Shield className="h-4 w-4" />
+              ⚡ One-Click Instant Sandbox Demo
+            </button>
 
             <form
               onSubmit={(e) => {
