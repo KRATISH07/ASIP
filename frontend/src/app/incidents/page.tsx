@@ -11,19 +11,19 @@ import {
 } from "lucide-react";
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: "text-rose-700 bg-red-100 border-red-200",
-  high: "text-orange-700 bg-orange-100 border-orange-200",
-  medium: "text-yellow-700 bg-yellow-100 border-yellow-200",
-  low: "text-emerald-700 bg-green-100 border-green-200",
+  critical: "text-rose-400 bg-rose-500/20 ring-1 ring-rose-500/30",
+  high: "text-orange-400 bg-orange-500/20 ring-1 ring-orange-500/30",
+  medium: "text-amber-400 bg-amber-500/20 ring-1 ring-amber-500/30",
+  low: "text-emerald-400 bg-emerald-500/20 ring-1 ring-emerald-500/30",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  detected: "text-blue-700 bg-blue-100 border-blue-200",
-  analyzing: "text-violet-700 bg-violet-100 border-violet-200",
-  action_planned: "text-cyan-700 bg-cyan-100 border-cyan-200",
-  in_progress: "text-amber-700 bg-amber-100 border-amber-200",
-  resolved: "text-emerald-700 bg-green-100 border-green-200",
-  escalated: "text-rose-700 bg-red-100 border-red-200",
+  detected: "text-sky-400 bg-sky-500/20 ring-1 ring-sky-500/30",
+  analyzing: "text-violet-400 bg-violet-500/20 ring-1 ring-violet-500/30",
+  action_planned: "text-cyan-400 bg-cyan-500/20 ring-1 ring-cyan-500/30",
+  in_progress: "text-amber-400 bg-amber-500/20 ring-1 ring-amber-500/30",
+  resolved: "text-emerald-400 bg-emerald-500/20 ring-1 ring-emerald-500/30",
+  escalated: "text-rose-400 bg-rose-500/20 ring-1 ring-rose-500/30",
 };
 
 const MOCK_INCIDENTS: IncidentOut[] = [
@@ -530,104 +530,104 @@ function IncidentsPageContent() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Left List Panel */}
-      <div className="w-96 flex-shrink-0 border-r border-stone-200 flex flex-col h-full bg-[#faf6f0]">
-        <div className="px-5 py-4 border-b border-stone-200">
+      <div className="w-96 flex-shrink-0 border-r border-white/10 flex flex-col h-full bg-[#09090b]">
+        <div className="px-5 py-4 border-b border-white/10">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold text-stone-800">Active Incidents</h1>
+            <h1 className="text-lg font-bold text-white">Active Incidents</h1>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-stone-200">
+        <div className="flex-1 overflow-y-auto divide-y divide-white/[0.04]">
           {filteredIncidents.map((inc) => (
             <button
               key={inc.id}
               onClick={() => { setSelected(inc); setShowForm(false); }}
-              className={`w-full text-left px-5 py-4 hover:bg-stone-100 transition-colors cursor-pointer ${selected?.id === inc.id ? "bg-amber-50 border-l-2 border-amber-500" : ""}`}
+              className={`w-full text-left px-5 py-4 hover:bg-white/[0.04] transition-colors cursor-pointer ${selected?.id === inc.id ? "bg-violet-500/10 border-l-2 border-violet-500" : ""}`}
             >
               <div className="flex items-start justify-between gap-2 mb-2">
-                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${SEVERITY_COLORS[inc.severity]}`}>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${SEVERITY_COLORS[inc.severity]}`}>
                   {inc.severity}
                 </span>
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize border border-stone-200 ${STATUS_COLORS[inc.status]}`}>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${STATUS_COLORS[inc.status]}`}>
                   {inc.status.replace(/_/g, " ")}
                 </span>
               </div>
-              <p className="text-sm font-medium text-stone-800 capitalize">{inc.sensor_data?.custom_type || inc.type.replace(/_/g, " ")}</p>
-              <p className="text-xs text-stone-500 mt-0.5 line-clamp-2">{inc.description}</p>
-              <p className="text-[10px] text-stone-400 mt-2">
+              <p className="text-sm font-medium text-zinc-200 capitalize">{inc.sensor_data?.custom_type || inc.type.replace(/_/g, " ")}</p>
+              <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">{inc.description}</p>
+              <p className="text-[10px] text-zinc-500 mt-2">
                 {inc.sensor_data?.reported_by ? `Reported by: ${inc.sensor_data.reported_by} · ` : ""}
                 {mounted ? new Date(inc.detected_at).toLocaleString() : ""}
               </p>
             </button>
           ))}
           {filteredIncidents.length === 0 && (
-            <p className="text-xs text-stone-400 text-center py-10">No items in this category.</p>
+            <p className="text-xs text-zinc-500 text-center py-10">No items in this category.</p>
           )}
         </div>
       </div>
 
       {/* Right Detail / Form Panel */}
-      <div className="flex-1 overflow-y-auto p-6 bg-[#faf6f0]/50 h-full">
+      <div className="flex-1 overflow-y-auto p-6 bg-[#09090b] h-full">
         {successMsg && (
-          <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded-xl text-xs transition-all animate-fadeIn">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <div className="mb-4 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs transition-all animate-fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             {successMsg}
           </div>
         )}
 
         {showForm ? (
-          <form onSubmit={handleLogComplaint} className="max-w-2xl bg-white border border-stone-200 shadow-sm rounded-2xl p-6 space-y-5 animate-fadeIn">
+          <form onSubmit={handleLogComplaint} className="max-w-2xl glass-card p-6 space-y-5 animate-fade-in">
             <div>
-              <h2 className="text-base font-bold text-stone-800 mb-1">File Resident Physical Complaint</h2>
-              <p className="text-xs text-stone-500">Manually log complaints reported by building residents to queue repair dispatches.</p>
+              <h2 className="text-base font-bold text-white mb-1">File Resident Physical Complaint</h2>
+              <p className="text-xs text-zinc-400">Manually log complaints reported by building residents to queue repair dispatches.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Complaint Category</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Complaint Category</label>
                 <select
                   value={newType}
                   onChange={(e) => setNewType(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-violet-500/50"
                 >
-                  <option value="abnormal_infrastructure">Abnormal Infrastructure / Repair</option>
-                  <option value="water_pressure_drop">Water Pressure Drop</option>
-                  <option value="water_shortage">Water Shortage Outage</option>
-                  <option value="tank_overflow">Water Tank Overflow</option>
-                  <option value="power_outage">Electricity Power Outage</option>
-                  <option value="power_overload">Power Grid Overload</option>
-                  <option value="custom">Other (Custom Incident Category)</option>
+                  <option value="abnormal_infrastructure" className="bg-[#18181b] text-zinc-200">Abnormal Infrastructure / Repair</option>
+                  <option value="water_pressure_drop" className="bg-[#18181b] text-zinc-200">Water Pressure Drop</option>
+                  <option value="water_shortage" className="bg-[#18181b] text-zinc-200">Water Shortage Outage</option>
+                  <option value="tank_overflow" className="bg-[#18181b] text-zinc-200">Water Tank Overflow</option>
+                  <option value="power_outage" className="bg-[#18181b] text-zinc-200">Electricity Power Outage</option>
+                  <option value="power_overload" className="bg-[#18181b] text-zinc-200">Power Grid Overload</option>
+                  <option value="custom" className="bg-[#18181b] text-zinc-200">Other (Custom Incident Category)</option>
                 </select>
               </div>
 
               {newType === "custom" && (
-                <div className="md:col-span-2 animate-fadeIn">
-                  <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Custom Incident Category Name</label>
+                <div className="md:col-span-2 animate-fade-in">
+                  <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Custom Incident Category Name</label>
                   <input
                     type="text"
                     required
                     value={customTypeName}
                     onChange={(e) => setCustomTypeName(e.target.value)}
                     placeholder="e.g. Broken Elevator, Blocked Sewage, Fire Alarm Malfunction..."
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Reporting Unit (e.g. Room/Tower)</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Reporting Unit (e.g. Room/Tower)</label>
                 <input
                   type="text"
                   required
                   value={newRoom}
                   onChange={(e) => setNewRoom(e.target.value)}
                   placeholder="e.g. Tower B, Room 803"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Complaint Severity</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Complaint Severity</label>
                 <div className="grid grid-cols-4 gap-2.5">
                   {["low", "medium", "high", "critical"].map((sev) => (
                     <button
@@ -636,8 +636,8 @@ function IncidentsPageContent() {
                       onClick={() => setNewSeverity(sev)}
                       className={`py-2 rounded-xl text-xs font-bold uppercase tracking-wider border cursor-pointer transition-all ${
                         newSeverity === sev
-                          ? "bg-amber-100 border-amber-400 text-amber-800"
-                          : "bg-stone-50 border-stone-200 text-stone-500 hover:bg-stone-100 hover:text-stone-800"
+                          ? "bg-violet-600/30 border-violet-500 text-violet-300"
+                          : "bg-white/[0.04] border-white/[0.08] text-zinc-400 hover:bg-white/[0.08] hover:text-zinc-200"
                       }`}
                     >
                       {sev}
@@ -647,14 +647,14 @@ function IncidentsPageContent() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Description of Physical Issue</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Description of Physical Issue</label>
                 <textarea
                   rows={4}
                   required
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
                   placeholder="e.g. Leaking pipeline below flush valves in master bathroom causing wall seepage..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500 font-sans"
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50 font-sans"
                 />
               </div>
             </div>
@@ -662,7 +662,7 @@ function IncidentsPageContent() {
             <div className="flex items-center gap-3 pt-2">
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-sm font-semibold text-white rounded-xl transition-colors cursor-pointer shadow-md shadow-amber-200/40"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-sm font-semibold text-white rounded-xl transition-colors cursor-pointer shadow-lg shadow-violet-600/20"
               >
                 <Plus className="w-4 h-4" />
                 Submit Complaint
@@ -670,33 +670,33 @@ function IncidentsPageContent() {
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 border border-stone-200 hover:bg-stone-100 text-sm font-semibold text-stone-600 rounded-xl cursor-pointer"
+                className="px-4 py-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.06] text-sm font-semibold text-zinc-300 rounded-xl cursor-pointer transition-colors"
               >
                 Cancel
               </button>
             </div>
           </form>
         ) : selected ? (
-          <div className="space-y-6 max-w-2xl animate-fadeIn">
+          <div className="space-y-6 max-w-2xl animate-fade-in">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-stone-800 capitalize">{selected.sensor_data?.custom_type || selected.type.replace(/_/g, " ")}</h2>
-                <p className="text-sm text-stone-500 mt-1">{selected.description}</p>
+                <h2 className="text-2xl font-bold text-white capitalize">{selected.sensor_data?.custom_type || selected.type.replace(/_/g, " ")}</h2>
+                <p className="text-sm text-zinc-400 mt-1">{selected.description}</p>
               </div>
               {selected.sensor_data?.manual_report && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 border border-amber-300 text-xs font-bold text-amber-700 rounded-full">
-                  <MessageSquare className="w-3.5 h-3.5 text-amber-600" /> Resident Complaint
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/20 border border-amber-500/30 text-xs font-bold text-amber-400 rounded-full">
+                  <MessageSquare className="w-3.5 h-3.5 text-amber-400" /> Resident Complaint
                 </span>
               )}
             </div>
 
             {/* AI Processing Banner */}
             {processingAiId === selected.id && (
-              <div className="flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-300 px-4 py-3 animate-pulse">
-                <div className="flex-shrink-0 animate-spin rounded-full h-4 w-4 border-2 border-amber-600 border-t-transparent" />
+              <div className="flex items-center gap-3 rounded-xl bg-violet-500/10 border border-violet-500/20 px-4 py-3 animate-pulse">
+                <div className="flex-shrink-0 animate-spin rounded-full h-4 w-4 border-2 border-violet-400 border-t-transparent" />
                 <div>
-                  <p className="text-xs font-bold text-amber-800">AI Multi-Agent Pipeline Running…</p>
-                  <p className="text-[10px] text-amber-600 mt-0.5">Infrastructure, impact, contractor &amp; decision agents processing. Results appear automatically.</p>
+                  <p className="text-xs font-bold text-violet-300">AI Multi-Agent Pipeline Running…</p>
+                  <p className="text-[10px] text-violet-400/80 mt-0.5">Infrastructure, impact, contractor &amp; decision agents processing. Results appear automatically.</p>
                 </div>
               </div>
             )}
@@ -711,42 +711,42 @@ function IncidentsPageContent() {
                     <select
                       value={selected.status}
                       onChange={(e) => handleStatusChange(e.target.value)}
-                      className="bg-transparent border-none text-xs font-bold text-stone-800 capitalize focus:outline-none cursor-pointer"
+                      className="bg-transparent border-none text-xs font-bold text-zinc-200 capitalize focus:outline-none cursor-pointer"
                     >
-                      <option value="detected" className="bg-white text-blue-700">Detected</option>
-                      <option value="analyzing" className="bg-white text-violet-700">Analyzing</option>
-                      <option value="action_planned" className="bg-white text-cyan-700">Action Planned</option>
-                      <option value="in_progress" className="bg-white text-amber-700">In Progress</option>
-                      <option value="resolved" className="bg-white text-emerald-700">Resolved</option>
-                      <option value="escalated" className="bg-white text-rose-700">Escalated</option>
+                      <option value="detected" className="bg-[#18181b] text-sky-400">Detected</option>
+                      <option value="analyzing" className="bg-[#18181b] text-violet-400">Analyzing</option>
+                      <option value="action_planned" className="bg-[#18181b] text-cyan-400">Action Planned</option>
+                      <option value="in_progress" className="bg-[#18181b] text-amber-400">In Progress</option>
+                      <option value="resolved" className="bg-[#18181b] text-emerald-400">Resolved</option>
+                      <option value="escalated" className="bg-[#18181b] text-rose-400">Escalated</option>
                     </select>
                   ),
                   cls: STATUS_COLORS[selected.status]
                 },
-                { label: "Confidence", value: `${(selected.confidence * 100).toFixed(0)}%`, cls: "text-stone-800 bg-stone-100" },
+                { label: "Confidence", value: `${(selected.confidence * 100).toFixed(0)}%`, cls: "text-zinc-200 bg-white/[0.06] ring-1 ring-white/10" },
               ].map(({ label, value, cls }) => (
-                <div key={label} className="rounded-xl bg-white border border-stone-200 shadow-sm p-3 flex flex-col justify-between">
-                  <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-1.5">{label}</p>
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-stone-200 ${cls}`}>{value}</span>
+                <div key={label} className="glass-card p-3 flex flex-col justify-between">
+                  <p className="text-[10px] text-zinc-400 uppercase tracking-wider mb-1.5">{label}</p>
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${cls}`}>{value}</span>
                 </div>
               ))}
             </div>
 
             {/* Root cause */}
             {selected.root_cause && (
-              <div className="rounded-xl bg-white border border-stone-200 shadow-sm p-4">
-                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Root Cause Analysis</p>
-                <p className="text-sm text-stone-800">{selected.root_cause}</p>
+              <div className="glass-card p-4">
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Root Cause Analysis</p>
+                <p className="text-sm text-zinc-200">{selected.root_cause}</p>
               </div>
             )}
 
             {/* Solution Suggestion & AI Predictions */}
             {(selected.ai_decision?.action_plan || selected.ai_decision?.incident_summary) && (
-              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-5 space-y-4">
+              <div className="glass-card p-5 space-y-4 border-l-4 border-l-emerald-500">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Solution Plan</p>
+                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Solution Plan</p>
                   {selected.ai_decision?.estimated_resolution_hrs && (
-                    <span className="text-xs text-emerald-600 font-medium bg-emerald-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs text-emerald-400 font-medium bg-emerald-500/20 ring-1 ring-emerald-500/30 px-2.5 py-0.5 rounded-full">
                       Est: {selected.ai_decision.estimated_resolution_hrs}h
                     </span>
                   )}
@@ -754,16 +754,16 @@ function IncidentsPageContent() {
 
                 {/* AI Predictions Row */}
                 {selected.ai_decision?.prediction && (
-                  <div className="grid grid-cols-2 gap-3 bg-emerald-100/60 p-3 rounded-xl border border-emerald-200">
+                  <div className="grid grid-cols-2 gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/[0.06]">
                     <div>
-                      <p className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider">Predicted Cost</p>
-                      <p className="text-sm font-bold text-stone-800 mt-1">
+                      <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Predicted Cost</p>
+                      <p className="text-sm font-bold text-white mt-1">
                         ₹{selected.ai_decision.prediction.estimated_cost?.toLocaleString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[9px] text-emerald-700 font-bold uppercase tracking-wider">Predicted Duration</p>
-                      <p className="text-sm font-bold text-stone-800 mt-1">
+                      <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Predicted Duration</p>
+                      <p className="text-sm font-bold text-white mt-1">
                         {selected.ai_decision.prediction.predicted_outage_hrs?.toFixed(1)} hrs
                       </p>
                     </div>
@@ -771,14 +771,14 @@ function IncidentsPageContent() {
                 )}
 
                 {selected.ai_decision?.incident_summary && (
-                  <p className="text-sm text-stone-700 font-medium leading-relaxed">
+                  <p className="text-sm text-zinc-200 font-medium leading-relaxed">
                     {selected.ai_decision.incident_summary}
                   </p>
                 )}
                 {selected.ai_decision?.action_plan && (
-                  <div className="pt-2 border-t border-emerald-200">
-                    <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">Action Steps</p>
-                    <p className="text-sm text-stone-600 whitespace-pre-line leading-relaxed">
+                  <div className="pt-2 border-t border-white/[0.06]">
+                    <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Action Steps</p>
+                    <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">
                       {selected.ai_decision.action_plan}
                     </p>
                   </div>
@@ -788,50 +788,50 @@ function IncidentsPageContent() {
 
             {/* Contractor */}
             {selected.contractor_assignment && (
-              <div className="rounded-xl bg-white border border-stone-200 shadow-sm p-4">
-                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Assigned Contractor</p>
+              <div className="glass-card p-4">
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Assigned Contractor</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <p className="text-[10px] text-stone-400">Name</p>
+                    <p className="text-[10px] text-zinc-400">Name</p>
                     <Link
                       href={`/contractors?highlight=${encodeURIComponent(selected.contractor_assignment.contractor_name)}`}
-                      className="text-sm text-amber-600 hover:text-amber-500 font-semibold hover:underline cursor-pointer inline-flex items-center gap-1 group"
+                      className="text-sm text-violet-400 hover:text-violet-300 font-semibold hover:underline cursor-pointer inline-flex items-center gap-1 group"
                     >
                       {selected.contractor_assignment.contractor_name}
-                      <ExternalLink className="w-3 h-3 text-stone-400 group-hover:text-amber-600 transition-colors" />
+                      <ExternalLink className="w-3 h-3 text-zinc-400 group-hover:text-violet-300 transition-colors" />
                     </Link>
                   </div>
                   <div>
-                    <p className="text-[10px] text-stone-400">Dispatched Cost</p>
-                    <p className="text-sm text-stone-800 font-medium">₹{selected.contractor_assignment.estimated_cost?.toLocaleString()}</p>
+                    <p className="text-[10px] text-zinc-400">Dispatched Cost</p>
+                    <p className="text-sm text-zinc-200 font-medium">₹{selected.contractor_assignment.estimated_cost?.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-stone-400">Dispatched Time</p>
-                    <p className="text-sm text-stone-800 font-medium">{selected.contractor_assignment.estimated_time_hrs}h</p>
+                    <p className="text-[10px] text-zinc-400">Dispatched Time</p>
+                    <p className="text-sm text-zinc-200 font-medium">{selected.contractor_assignment.estimated_time_hrs}h</p>
                   </div>
                 </div>
                 {selected.contractor_assignment.selection_reasoning && (
-                  <p className="mt-3 text-xs text-stone-500 italic leading-relaxed border-t border-stone-200 pt-2.5">{selected.contractor_assignment.selection_reasoning}</p>
+                  <p className="mt-3 text-xs text-zinc-400 italic leading-relaxed border-t border-white/[0.06] pt-2.5">{selected.contractor_assignment.selection_reasoning}</p>
                 )}
               </div>
             )}
 
             {/* Dynamic Scored Contractor Candidate Alternatives */}
-            <div className="rounded-xl bg-white border border-stone-200 shadow-sm p-5 space-y-4">
+            <div className="glass-card p-5 space-y-4">
               <div>
-                <h3 className="text-sm font-bold text-stone-800 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-amber-600" />
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Award className="w-4 h-4 text-violet-400" />
                   AI Contractor Candidate Evaluation
                 </h3>
-                <p className="text-[10px] text-stone-400 mt-1">
+                <p className="text-[10px] text-zinc-400 mt-1">
                   Scored using dynamic Thompson Sampling over historical speed, success rate, cost, and resident feedback.
                 </p>
               </div>
 
               {fetchingRankings ? (
                 <div className="flex flex-col items-center justify-center py-6 space-y-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-600" />
-                  <span className="text-[10px] text-stone-400">Evaluating contractors...</span>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-violet-400" />
+                  <span className="text-[10px] text-zinc-400">Evaluating contractors...</span>
                 </div>
               ) : rankings.length > 0 ? (
                 <div className="space-y-3">
@@ -841,62 +841,62 @@ function IncidentsPageContent() {
                     const isMostReliable = c.breakdown?.success_rate_score >= 96;
 
                     return (
-                      <div key={c.contractor_id} className={`rounded-xl border p-4 space-y-2.5 ${isBest ? "bg-amber-50/60 border-amber-300" : "bg-stone-50/50 border-stone-200"}`}>
+                      <div key={c.contractor_id} className={`rounded-xl border p-4 space-y-2.5 ${isBest ? "bg-violet-500/10 border-violet-500/30" : "bg-white/[0.02] border-white/[0.06]"}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Link 
                               href={`/contractors?highlight=${encodeURIComponent(c.name)}`}
-                              className="text-xs font-bold text-amber-700 hover:text-amber-600 hover:underline cursor-pointer inline-flex items-center gap-1 group"
+                              className="text-xs font-bold text-violet-400 hover:text-violet-300 hover:underline cursor-pointer inline-flex items-center gap-1 group"
                             >
                               {i + 1}. {c.name}
-                              <ExternalLink className="w-2.5 h-2.5 text-stone-400 group-hover:text-amber-600 transition-colors" />
+                              <ExternalLink className="w-2.5 h-2.5 text-zinc-400 group-hover:text-violet-300 transition-colors" />
                             </Link>
                             {isBest && (
-                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-800">
+                              <span className="inline-flex items-center rounded-full bg-violet-500/20 ring-1 ring-violet-500/30 px-2 py-0.5 text-[9px] font-semibold text-violet-300">
                                 Best Match
                               </span>
                             )}
                             {isFastest && !isBest && (
-                              <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[9px] font-semibold text-orange-700">
+                              <span className="inline-flex items-center rounded-full bg-orange-500/20 ring-1 ring-orange-500/30 px-2 py-0.5 text-[9px] font-semibold text-orange-400">
                                 <Zap className="w-2.5 h-2.5 mr-0.5" /> Emergency
                               </span>
                             )}
                             {isMostReliable && !isBest && (
-                              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">
+                              <span className="inline-flex items-center rounded-full bg-emerald-500/20 ring-1 ring-emerald-500/30 px-2 py-0.5 text-[9px] font-semibold text-emerald-400">
                                 <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" /> Reliable
                               </span>
                             )}
                           </div>
-                          <span className="text-xs font-bold text-stone-800">{c.final_score}%</span>
+                          <span className="text-xs font-bold text-white">{c.final_score}%</span>
                         </div>
 
                         {/* Metrics Bar Breakdown */}
-                        <div className="grid grid-cols-3 gap-2.5 pt-1.5 border-t border-stone-200 text-[10px]">
+                        <div className="grid grid-cols-3 gap-2.5 pt-1.5 border-t border-white/[0.06] text-[10px]">
                           <div>
                             <div className="flex justify-between mb-1">
-                              <span className="text-stone-400">Success Rate</span>
-                              <span className="text-stone-700 font-medium">{c.breakdown?.success_rate_score}%</span>
+                              <span className="text-zinc-400">Success Rate</span>
+                              <span className="text-zinc-200 font-medium">{c.breakdown?.success_rate_score}%</span>
                             </div>
-                            <div className="w-full bg-stone-200 rounded-full h-1">
-                              <div className="h-1 rounded-full bg-emerald-500" style={{ width: `${c.breakdown?.success_rate_score}%` }} />
+                            <div className="w-full bg-white/[0.1] rounded-full h-1">
+                              <div className="h-1 rounded-full bg-emerald-400" style={{ width: `${c.breakdown?.success_rate_score}%` }} />
                             </div>
                           </div>
                           <div>
                             <div className="flex justify-between mb-1">
-                              <span className="text-stone-400">Response Speed</span>
-                              <span className="text-stone-700 font-medium">{c.breakdown?.repair_time_score}%</span>
+                              <span className="text-zinc-400">Response Speed</span>
+                              <span className="text-zinc-200 font-medium">{c.breakdown?.repair_time_score}%</span>
                             </div>
-                            <div className="w-full bg-stone-200 rounded-full h-1">
-                              <div className="h-1 rounded-full bg-orange-500" style={{ width: `${c.breakdown?.repair_time_score}%` }} />
+                            <div className="w-full bg-white/[0.1] rounded-full h-1">
+                              <div className="h-1 rounded-full bg-orange-400" style={{ width: `${c.breakdown?.repair_time_score}%` }} />
                             </div>
                           </div>
                           <div>
                             <div className="flex justify-between mb-1">
-                              <span className="text-stone-400">Feedback</span>
-                              <span className="text-stone-700 font-medium">{c.breakdown?.feedback_score}%</span>
+                              <span className="text-zinc-400">Feedback</span>
+                              <span className="text-zinc-200 font-medium">{c.breakdown?.feedback_score}%</span>
                             </div>
-                            <div className="w-full bg-stone-200 rounded-full h-1">
-                              <div className="h-1 rounded-full bg-violet-500" style={{ width: `${c.breakdown?.feedback_score}%` }} />
+                            <div className="w-full bg-white/[0.1] rounded-full h-1">
+                              <div className="h-1 rounded-full bg-violet-400" style={{ width: `${c.breakdown?.feedback_score}%` }} />
                             </div>
                           </div>
                         </div>
@@ -905,30 +905,30 @@ function IncidentsPageContent() {
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-stone-400 text-center py-4">No contractor candidates found matching specialization.</p>
+                <p className="text-xs text-zinc-500 text-center py-4">No contractor candidates found matching specialization.</p>
               )}
             </div>
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center py-20">
-            <AlertTriangle className="w-12 h-12 text-stone-300 mb-3" />
-            <p className="text-stone-500 font-medium">Select an incident to view details</p>
-            <p className="text-xs text-stone-400 mt-1">{filteredIncidents.length} incidents in this category</p>
+            <AlertTriangle className="w-12 h-12 text-zinc-600 mb-3" />
+            <p className="text-zinc-400 font-medium">Select an incident to view details</p>
+            <p className="text-xs text-zinc-500 mt-1">{filteredIncidents.length} incidents in this category</p>
           </div>
         )}
       </div>
 
       {showFeedbackForm && selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="w-full max-w-lg rounded-3xl border border-stone-200 bg-white p-6 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#121215] p-6 shadow-2xl space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-stone-800">Provide Incident Feedback</h3>
-                <p className="text-xs text-stone-500 mt-0.5">Record outcomes to train the predictive AI model</p>
+                <h3 className="text-lg font-bold text-white">Provide Incident Feedback</h3>
+                <p className="text-xs text-zinc-400 mt-0.5">Record outcomes to train the predictive AI model</p>
               </div>
               <button
                 onClick={() => setShowFeedbackForm(false)}
-                className="rounded-xl border border-stone-200 bg-stone-50 p-2 text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition-colors cursor-pointer"
+                className="rounded-xl border border-white/10 bg-white/[0.04] p-2 text-zinc-400 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -936,31 +936,31 @@ function IncidentsPageContent() {
 
             <form onSubmit={handleSubmitFeedback} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Identified Root Cause (What was the issue?)</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Identified Root Cause (What was the issue?)</label>
                 <input
                   type="text"
                   required
                   value={feedbackRootCause}
                   onChange={(e) => setFeedbackRootCause(e.target.value)}
                   placeholder="e.g. Pump impeller jammed by sand deposits"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Actual Cost (INR)</label>
+                  <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Actual Cost (INR)</label>
                   <input
                     type="number"
                     required
                     value={actualCost}
                     onChange={(e) => setActualCost(e.target.value)}
                     placeholder="e.g. 7800"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Duration to Fix (Hours)</label>
+                  <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Duration to Fix (Hours)</label>
                   <input
                     type="number"
                     step="0.1"
@@ -968,38 +968,38 @@ function IncidentsPageContent() {
                     value={actualOutageHrs}
                     onChange={(e) => setActualOutageHrs(e.target.value)}
                     placeholder="e.g. 2.5"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500"
+                    className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Contractor Dispatched</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Contractor Dispatched</label>
                 <input
                   type="text"
                   value={feedbackContractor}
                   onChange={(e) => setFeedbackContractor(e.target.value)}
                   placeholder="e.g. AquaFix Pro"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500"
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-2">Resolution Action Summary</label>
+                <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Resolution Action Summary</label>
                 <textarea
                   rows={3}
                   required
                   value={feedbackSummary}
                   onChange={(e) => setFeedbackSummary(e.target.value)}
                   placeholder="e.g. Replaced burnout capacitor and cleared blocked suction valve..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-amber-500 font-sans"
+                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500/50 font-sans"
                 />
               </div>
 
               <div className="flex items-center gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold text-white rounded-xl transition-colors cursor-pointer text-center shadow-md shadow-emerald-200/40"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold text-white rounded-xl transition-colors cursor-pointer text-center shadow-lg shadow-emerald-600/20"
                 >
                   Submit Feedback & Resolve
                 </button>
@@ -1014,7 +1014,7 @@ function IncidentsPageContent() {
 
 export default function IncidentsPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-stone-400">Loading incident details...</div>}>
+    <Suspense fallback={<div className="p-6 text-zinc-400">Loading incident details...</div>}>
       <IncidentsPageContent />
     </Suspense>
   );
