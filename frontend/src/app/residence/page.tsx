@@ -42,12 +42,12 @@ const PRIORITIES = [
 ];
 
 const STATUS_BADGES: Record<string, string> = {
-  submitted: "bg-amber-500/20 text-amber-600 border-amber-300",
-  under_review: "bg-violet-500/20 text-violet-600 border-violet-500/30",
-  converted_to_incident: "bg-orange-500/20 text-orange-600 border-orange-500/30",
-  assigned: "bg-cyan-500/20 text-cyan-600 border-cyan-500/30",
-  resolved: "bg-emerald-50 text-emerald-600 border-emerald-200",
-  rejected: "bg-rose-50 text-rose-600 border-rose-300",
+  submitted: "bg-amber-100 text-amber-900 border-amber-300 font-bold",
+  under_review: "bg-indigo-100 text-indigo-900 border-indigo-300 font-bold",
+  converted_to_incident: "bg-blue-100 text-blue-900 border-blue-300 font-bold",
+  assigned: "bg-cyan-100 text-cyan-900 border-cyan-300 font-bold",
+  resolved: "bg-emerald-100 text-emerald-900 border-emerald-300 font-bold",
+  rejected: "bg-rose-100 text-rose-900 border-rose-300 font-bold",
 };
 
 export default function ResidencePage() {

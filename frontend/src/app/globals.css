@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf4e8;
-  --foreground: #1c1917;
+  --background: #f8fafc;
+  --foreground: #0f172a;
   --card-bg: #ffffff;
-  --accent-gold: #d97706;
+  --accent-primary: #4f46e5;
 }
 
 @theme inline {
@@ -21,26 +21,26 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Golden selection highlight */
+/* Crisp selection highlight */
 ::selection {
-  background: #fef3c7;
-  color: #92400e;
+  background: #e0e7ff;
+  color: #3730a3;
 }
 
-/* Smooth warm scrollbar */
+/* Smooth slate scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #faf4e8;
+  background: #f8fafc;
 }
 ::-webkit-scrollbar-thumb {
-  background: #fde68a;
+  background: #cbd5e1;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #d97706;
+  background: #6366f1;
 }
 
 /* Animations */
@@ -49,36 +49,21 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes pulseGlow {
-  0%, 100% { opacity: 0.6; transform: scale(1); }
-  50% { opacity: 0.9; transform: scale(1.03); }
-}
-
 .animate-fade-in {
-  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.animate-pulse-glow {
-  animation: pulseGlow 4s ease-in-out infinite;
-}
-
-/* Modern Management Card Utilities */
+/* Crisp Modern Management Card Utilities */
 .mgmt-card {
   background: #ffffff;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  box-shadow: 0 4px 18px -2px rgba(180, 83, 9, 0.05), 0 1px 4px -1px rgba(0, 0, 0, 0.02);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
   border-radius: 1.25rem;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease-in-out;
 }
 
 .mgmt-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(217, 119, 6, 0.35);
-  box-shadow: 0 12px 28px -4px rgba(217, 119, 6, 0.1), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
-}
-
-.glass-badge {
-  background: rgba(254, 243, 199, 0.7);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
 }
