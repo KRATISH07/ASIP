@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { authApi } from "@/lib/api";
-import { Shield, UserCheck, Home, HardHat, Cpu, Key, AlertCircle } from "lucide-react";
+import { Shield, UserCheck, Home, Cpu, Key, AlertCircle, Sparkles, Building2 } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -28,7 +28,7 @@ const PRESETS = [
     password: "admin123",
     desc: "Full infrastructure control, settings, and database management",
     icon: Shield,
-    color: "from-amber-600 to-yellow-700",
+    badge: "bg-violet-500/20 text-violet-300 border-violet-500/30",
   },
   {
     role: "Resident",
@@ -36,7 +36,7 @@ const PRESETS = [
     password: "password123",
     desc: "File complaints, view own apartments, view notification feed",
     icon: Home,
-    color: "from-emerald-600 to-teal-700",
+    badge: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
   },
   {
     role: "IoT Gateway",
@@ -44,7 +44,7 @@ const PRESETS = [
     password: "password123",
     desc: "Durable telemetry upload and store-and-forward status stats",
     icon: Cpu,
-    color: "from-stone-500 to-stone-700",
+    badge: "bg-sky-500/20 text-sky-300 border-sky-500/30",
   },
 ];
 
@@ -110,7 +110,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.location.href = "/";
       }
     } catch (err: any) {
-      // Demo Sandbox Mode Fallback (when backend API is not running)
       const isDemoAdmin = (email === "admin@asip.ai" || email.includes("admin")) && (password === "admin123" || password === "password123");
       const isDemoResident = (email === "resident1@asip.ai" || email.includes("resident")) && password === "password123";
       const isDemoGateway = (email === "gateway@asip.ai" || email.includes("gateway")) && password === "password123";
@@ -149,10 +148,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#faf6f0]">
+      <div className="flex h-screen w-screen items-center justify-center bg-[#09090b]">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-amber-200 border-t-amber-600"></div>
-          <p className="text-sm font-medium text-stone-400">Loading ASIP session...</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-zinc-700 border-t-violet-500"></div>
+          <p className="text-sm font-medium text-zinc-400">Loading ASIP session...</p>
         </div>
       </div>
     );
@@ -161,19 +160,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Render Login view if unauthenticated
   if (!token) {
     return (
-      <div className="relative min-h-screen w-screen flex items-center justify-center bg-[#fefcf3] overflow-y-auto px-4 py-12">
-        {/* Rich golden cream decorative glow */}
-        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-amber-300/25 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] bg-yellow-400/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="relative min-h-screen w-screen flex items-center justify-center bg-[#09090b] overflow-y-auto px-4 py-12 dot-grid">
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-violet-600/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] bg-indigo-600/15 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="relative w-full max-w-4xl bg-white border border-amber-200/80 rounded-3xl overflow-hidden shadow-2xl shadow-amber-900/10 flex flex-col md:flex-row">
+        <div className="relative w-full max-w-4xl glass-card rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-white/[0.08]">
           
-          {/* Presets / Role switch options on the left */}
-          <div className="flex-1 p-8 bg-[#fffef9] border-r border-amber-100 flex flex-col justify-between">
+          {/* Presets on the left */}
+          <div className="flex-1 p-8 bg-white/[0.02] border-r border-white/[0.06] flex flex-col justify-between space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-stone-800 tracking-tight">ASIP Accounts Seeding</h2>
-              <p className="text-xs text-stone-500 mt-2 mb-6">
-                To test the new store-and-forward sensor buffer, resident complaints, and RBAC isolation, select one of the seeded user profiles below.
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-violet-500/20">
+                  A
+                </div>
+                <h2 className="text-xl font-bold text-white tracking-tight">ASIP Quick Access</h2>
+              </div>
+              <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+                Select a pre-seeded account profile to test role-based access control, resident complaints, and IoT telemetry buffer.
               </p>
               
               <div className="space-y-3">
@@ -187,19 +190,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         setPasswordInput(p.password);
                         login(p.email, p.password);
                       }}
-                      className="w-full text-left p-3.5 rounded-2xl bg-white border border-stone-200 hover:border-amber-300 hover:shadow-md hover:shadow-amber-100/50 transition duration-200 flex items-start gap-3 group cursor-pointer"
+                      className="w-full text-left p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.07] hover:border-violet-500/30 transition duration-200 flex items-start gap-3.5 group cursor-pointer"
                     >
-                      <div className={`p-2 rounded-xl bg-gradient-to-br ${p.color} text-white flex-shrink-0`}>
+                      <div className={`p-2.5 rounded-xl ${p.badge} border flex-shrink-0`}>
                         <Icon className="h-4.5 w-4.5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-xs text-stone-800">{p.role}</p>
-                          <span className="text-[9px] text-stone-400 font-mono group-hover:text-amber-600 transition-colors">
+                          <p className="font-semibold text-xs text-white">{p.role}</p>
+                          <span className="text-[10px] text-zinc-500 font-mono group-hover:text-violet-300 transition-colors">
                             {p.email}
                           </span>
                         </div>
-                        <p className="text-[10px] text-stone-500 mt-1 leading-snug">{p.desc}</p>
+                        <p className="text-[11px] text-zinc-400 mt-1 leading-snug">{p.desc}</p>
                       </div>
                     </button>
                   );
@@ -207,27 +210,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             
-            <p className="text-[9px] text-stone-400 mt-6 leading-tight">
-              ASIP v1.0.0 — AI operations center. Powered by LangGraph, ChromaDB, and FastAPI.
+            <p className="text-[10px] text-zinc-600 leading-tight">
+              ASIP v1.0.0 — AI Operations Center • LangGraph, ChromaDB, FastAPI
             </p>
           </div>
 
-          {/* Regular Login Form on the right */}
-          <div className="w-full md:w-[380px] p-8 flex flex-col justify-center bg-white">
-            <div className="mb-8">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center shadow-lg shadow-amber-300/30 mb-4">
-                <Key className="h-6 w-6 text-white" />
+          {/* Form on the right */}
+          <div className="w-full md:w-[380px] p-8 flex flex-col justify-center bg-zinc-950/60">
+            <div className="mb-6">
+              <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center mb-3 text-violet-400">
+                <Key className="h-5 w-5" />
               </div>
-              <h1 className="text-2xl font-bold text-stone-800 tracking-tight">Access Ops Center</h1>
-              <p className="text-xs text-stone-500 mt-1.5">Enter your credentials below or launch Instant Sandbox Demo Mode.</p>
+              <h1 className="text-xl font-bold text-white tracking-tight">Access Ops Center</h1>
+              <p className="text-xs text-zinc-400 mt-1">Enter credentials or launch Sandbox Mode.</p>
             </div>
 
             <button
               type="button"
               onClick={() => login("admin@asip.ai", "password123")}
-              className="w-full mb-4 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white font-semibold text-xs shadow-md shadow-amber-300/30 transition flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full mb-4 py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg shadow-violet-600/20 transition flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Shield className="h-4 w-4" />
+              <Sparkles className="h-4 w-4 text-amber-300" />
               ⚡ One-Click Instant Sandbox Demo
             </button>
 
@@ -239,7 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               className="space-y-4"
             >
               <div>
-                <label className="block text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
                   Email Address
                 </label>
                 <input
@@ -247,13 +250,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="name@asip.ai"
-                  className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">
                   Password
                 </label>
                 <input
@@ -261,13 +264,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl bg-stone-50 border border-stone-200 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition"
                   required
                 />
               </div>
 
               {errorMsg && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2 text-xs text-rose-600 leading-snug">
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2 text-xs text-rose-400 leading-snug">
                   <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <span>{errorMsg}</span>
                 </div>
@@ -276,7 +279,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3.5 rounded-xl bg-amber-600 hover:bg-amber-500 disabled:bg-amber-300 text-white text-sm font-semibold transition shadow-lg shadow-amber-200/40 cursor-pointer"
+                className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-semibold transition cursor-pointer"
               >
                 {submitting ? "Signing in..." : "Sign In"}
               </button>
@@ -290,9 +293,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ token, user, login, logout, loading }}>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen overflow-hidden bg-[#09090b]">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-[#faf6f0]">
+        <main className="flex-1 overflow-y-auto bg-[#09090b]">
           {children}
         </main>
       </div>
