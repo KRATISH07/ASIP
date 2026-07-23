@@ -5,6 +5,8 @@ services:
     image: postgres:16-alpine
     container_name: asip_postgres
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-asip_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-asip_password}
@@ -23,6 +25,8 @@ services:
     image: chromadb/chroma:latest
     container_name: asip_chromadb
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
     ports:
       - "8001:8000"
     volumes:
@@ -37,8 +41,8 @@ services:
       dockerfile: Dockerfile
     container_name: asip_backend
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    mem_limit: 512m
+    cpus: 1.0
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-asip_user}:${POSTGRES_PASSWORD:-asip_password}@postgres:5432/${POSTGRES_DB:-asip_db}
       - CHROMA_HOST=chromadb
@@ -48,6 +52,8 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - LLM_PROVIDER=${LLM_PROVIDER:-openai}
       - ENVIRONMENT=development
+      - OMP_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,7 +61,6 @@ services:
         condition: service_started
     volumes:
       - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
     build:
@@ -63,8 +68,8 @@ services:
       dockerfile: Dockerfile
     container_name: asip_frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    mem_limit: 512m
+    cpus: 1.0
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
