@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
+  --background: #f4f6f8;
   --foreground: #0f172a;
   --card-bg: #ffffff;
-  --accent-primary: #4f46e5;
+  --accent-teal: #0d9488;
 }
 
 @theme inline {
@@ -23,24 +23,24 @@ body {
 
 /* Crisp selection highlight */
 ::selection {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: #ccfbf1;
+  color: #0f766e;
 }
 
-/* Smooth slate scrollbar */
+/* Smooth pearl scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f8fafc;
+  background: #f4f6f8;
 }
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #6366f1;
+  background: #0d9488;
 }
 
 /* Animations */
@@ -53,8 +53,8 @@ body {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Crisp Modern Management Card Utilities */
-.mgmt-card {
+/* Luxury Pearl Management Cards */
+.pearl-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
@@ -62,8 +62,8 @@ body {
   transition: all 0.2s ease-in-out;
 }
 
-.mgmt-card:hover {
+.pearl-card:hover {
   transform: translateY(-2px);
-  border-color: #cbd5e1;
-  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
+  border-color: #0d9488;
+  box-shadow: 0 12px 24px -4px rgba(13, 148, 136, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
 }
