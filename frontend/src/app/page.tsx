@@ -8,7 +8,7 @@ import {
   AlertTriangle, CheckCircle2, Flame, Activity,
   Zap, Droplets, TrendingUp, Bot, ArrowRight, ExternalLink,
   ShieldCheck, Wrench, Building2, Bell, Sparkles, HardHat, Check,
-  Waves, ArrowUpRight
+  Waves, ArrowUpRight, Sparkle
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -44,37 +44,15 @@ const MOCK_DATA: DashboardOut = {
   severity_distribution: { critical: 3, high: 5, medium: 12, low: 27 },
 };
 
-function KPICard({
-  title, value, subtitle, icon: Icon, badgeBg
-}: {
-  title: string; value: number | string; subtitle?: string;
-  icon: React.ElementType; badgeBg: string;
-}) {
-  return (
-    <div className="frost-card p-6 space-y-4 wave-glow-bg">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</p>
-        <div className={`p-3 rounded-2xl border ${badgeBg}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div>
-        <p className="text-4xl font-extrabold text-slate-900 tracking-tight tabular-nums">{value}</p>
-        {subtitle && <p className="mt-1.5 text-xs font-medium text-slate-500">{subtitle}</p>}
-      </div>
-    </div>
-  );
-}
-
 function SeverityBadge({ severity }: { severity: string }) {
   const colors: Record<string, string> = {
-    critical: "bg-rose-100 text-rose-800 border-rose-200 font-bold",
-    high: "bg-amber-100 text-amber-900 border-amber-300 font-bold",
-    medium: "bg-purple-100 text-purple-900 border-purple-300 font-semibold",
-    low: "bg-emerald-100 text-emerald-900 border-emerald-300 font-medium",
+    critical: "bg-red-600 text-white font-extrabold shadow-sm",
+    high: "bg-amber-500 text-white font-extrabold shadow-sm",
+    medium: "bg-purple-600 text-white font-bold shadow-sm",
+    low: "bg-emerald-600 text-white font-bold shadow-sm",
   };
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-wider ${colors[severity] || "bg-slate-100 text-slate-600"}`}>
+    <span className={`inline-flex items-center rounded-lg px-2.5 py-0.5 text-[10px] uppercase tracking-wider ${colors[severity] || "bg-stone-600 text-white"}`}>
       {severity}
     </span>
   );
@@ -82,21 +60,21 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    detected: "bg-blue-100 text-blue-800 font-bold border border-blue-200",
-    analyzing: "bg-indigo-100 text-indigo-800 font-bold border border-indigo-200",
-    action_planned: "bg-cyan-100 text-cyan-800 font-bold border border-cyan-200",
-    in_progress: "bg-amber-100 text-amber-800 font-bold border border-amber-200",
-    resolved: "bg-emerald-100 text-emerald-800 font-bold border border-emerald-200",
-    escalated: "bg-rose-100 text-rose-800 font-bold border border-rose-200",
+    detected: "bg-blue-600 text-white font-bold shadow-sm",
+    analyzing: "bg-indigo-600 text-white font-bold shadow-sm",
+    action_planned: "bg-teal-600 text-white font-bold shadow-sm",
+    in_progress: "bg-amber-500 text-white font-bold shadow-sm",
+    resolved: "bg-emerald-600 text-white font-bold shadow-sm",
+    escalated: "bg-rose-600 text-white font-bold shadow-sm",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] capitalize ${colors[status] || "bg-slate-100 text-slate-600"}`}>
+    <span className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] capitalize ${colors[status] || "bg-stone-600 text-white"}`}>
       {status.replace(/_/g, " ")}
     </span>
   );
 }
 
-export default function WavePatternDashboard() {
+export default function VibrantPopDashboard() {
   const { token, user } = useAuth();
   const [data, setData] = useState<DashboardOut>(MOCK_DATA);
   const [resolvedMap, setResolvedMap] = useState<Record<string, boolean>>({});
@@ -113,92 +91,123 @@ export default function WavePatternDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafc] p-6 lg:p-10 animate-fade-in space-y-8">
+    <div className="min-h-screen bg-[#ecfdf5] p-6 lg:p-10 animate-fade-in space-y-8">
       
-      {/* ── Top Hero Banner (Nordic Frost & Electric Wave) ──────────────────── */}
-      <div className="relative overflow-hidden bg-white border border-indigo-100 rounded-3xl p-8 shadow-xl shadow-indigo-950/5 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-cyan-400/10 rounded-full blur-3xl pointer-events-none" />
+      {/* ── 1. Vibrant Gradient Header Banner ───────────────────────────────── */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-800 via-teal-800 to-indigo-900 rounded-3xl p-8 shadow-2xl text-white space-y-4">
+        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-96 h-96 bg-amber-400/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 space-y-2">
-          <div className="flex items-center gap-2.5">
-            <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-100 text-indigo-900 border border-indigo-200/80 flex items-center gap-1.5">
-              <Waves className="w-3.5 h-3.5 text-indigo-600 animate-wave-float" />
-              AI Operations Center
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-              ● Live Dynamic Stream
-            </span>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <span className="px-3.5 py-1 rounded-full text-xs font-black bg-amber-400 text-slate-950 shadow-md uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                Vibrant AI Operations
+              </span>
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-400/20 text-emerald-200 border border-emerald-400/40">
+                ● Live Hardware Telemetry
+              </span>
+            </div>
+            <h1 className="text-3xl lg:text-4xl font-black tracking-tight text-white">
+              AI Society Operations & Wave Analytics
+            </h1>
+            <p className="text-xs lg:text-sm text-emerald-100/90 font-medium max-w-2xl">
+              Welcome back, <strong className="text-amber-300 font-bold">{user?.full_name || "Administrator"}</strong>. Autonomous LangGraph pipeline triaging incidents across 4 towers.
+            </p>
           </div>
-          <h1 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Real-Time Society Intelligence & Wave Analytics
-          </h1>
-          <p className="text-xs lg:text-sm text-slate-500 font-medium max-w-2xl">
-            Welcome back, <strong className="text-slate-800">{user?.full_name || "Administrator"}</strong>. Autonomous multi-agent pipeline monitoring live telemetry and resident incidents.
-          </p>
-        </div>
 
-        <div className="relative z-10 flex items-center gap-3">
-          <Link
-            href="/incidents"
-            className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-lg shadow-indigo-600/25 transition flex items-center gap-2"
-          >
-            <Activity className="w-4 h-4" />
-            Incidents Triage
-          </Link>
-          <Link
-            href="/analytics"
-            className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 transition flex items-center gap-2"
-          >
-            <TrendingUp className="w-4 h-4 text-indigo-600" />
-            AI Analytics
-          </Link>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <Link
+              href="/incidents"
+              className="px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg transition flex items-center gap-2"
+            >
+              <Activity className="w-4 h-4" />
+              Incidents Triage
+            </Link>
+            <Link
+              href="/analytics"
+              className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 backdrop-blur-md transition flex items-center gap-2"
+            >
+              <TrendingUp className="w-4 h-4 text-emerald-300" />
+              AI Analytics
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* ── KPI Metric Cards ─────────────────────────────────────────────────── */}
+      {/* ── 2. High-Noticeability Solid Color KPI Cards ─────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard
-          title="Total Incidents"
-          value={data.kpi.total_incidents}
-          subtitle="Processed this month"
-          icon={Activity}
-          badgeBg="bg-indigo-50 text-indigo-600 border-indigo-200"
-        />
-        <KPICard
-          title="Active Alerts"
-          value={data.kpi.active_incidents}
-          subtitle="Currently in pipeline"
-          icon={Flame}
-          badgeBg="bg-amber-50 text-amber-600 border-amber-200"
-        />
-        <KPICard
-          title="Critical Incidents"
-          value={data.kpi.critical_incidents}
-          subtitle="Immediate attention"
-          icon={AlertTriangle}
-          badgeBg="bg-rose-50 text-rose-600 border-rose-200"
-        />
-        <KPICard
-          title="Resolved Today"
-          value={data.kpi.resolved_today}
-          subtitle="Auto & manual closed"
-          icon={CheckCircle2}
-          badgeBg="bg-emerald-50 text-emerald-600 border-emerald-200"
-        />
+        
+        {/* Card 1: Vibrant Emerald */}
+        <div className="rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-700 p-6 shadow-xl text-white space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold text-emerald-100 uppercase tracking-wider">Total Handled</span>
+            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-md">
+              <Activity className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          <div>
+            <p className="text-4xl font-black tracking-tight tabular-nums">{data.kpi.total_incidents}</p>
+            <p className="mt-1 text-xs font-semibold text-emerald-100">All logged events this month</p>
+          </div>
+        </div>
+
+        {/* Card 2: Sunset Amber Gold */}
+        <div className="rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 p-6 shadow-xl text-white space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold text-amber-100 uppercase tracking-wider">Active Alerts</span>
+            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-md">
+              <Flame className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          <div>
+            <p className="text-4xl font-black tracking-tight tabular-nums">{data.kpi.active_incidents}</p>
+            <p className="mt-1 text-xs font-semibold text-amber-100">Currently in triage pipeline</p>
+          </div>
+        </div>
+
+        {/* Card 3: Electric Coral Rose */}
+        <div className="rounded-3xl bg-gradient-to-br from-rose-600 to-pink-700 p-6 shadow-xl text-white space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold text-rose-100 uppercase tracking-wider">Critical Alerts</span>
+            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-md">
+              <AlertTriangle className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          <div>
+            <p className="text-4xl font-black tracking-tight tabular-nums">{data.kpi.critical_incidents}</p>
+            <p className="mt-1 text-xs font-semibold text-rose-100">Immediate attention needed</p>
+          </div>
+        </div>
+
+        {/* Card 4: Royal Sapphire Indigo */}
+        <div className="rounded-3xl bg-gradient-to-br from-indigo-600 to-blue-700 p-6 shadow-xl text-white space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold text-indigo-100 uppercase tracking-wider">Resolved Today</span>
+            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-md">
+              <CheckCircle2 className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          <div>
+            <p className="text-4xl font-black tracking-tight tabular-nums">{data.kpi.resolved_today}</p>
+            <p className="mt-1 text-xs font-semibold text-indigo-100">Closed automatically</p>
+          </div>
+        </div>
+
       </div>
 
-      {/* ── Dynamic Wave Pattern Chart Card ──────────────────────────────────── */}
-      <div className="frost-card p-8 space-y-6">
+      {/* ── 3. High-Contrast Dynamic Wave Chart Card ────────────────────────── */}
+      <div className="vibrant-card p-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <TrendingUp className="w-5 h-5 text-indigo-600" />
-              Weekly Incident Velocity & Resolution Wave Pattern
+            <h2 className="text-xl font-black text-emerald-950 tracking-tight flex items-center gap-2.5">
+              <TrendingUp className="w-6 h-6 text-emerald-600" />
+              Weekly Incident Velocity Wave Curve
             </h2>
-            <p className="text-xs text-slate-500 mt-1 font-medium">Dynamic incident frequency curve and autonomous triage distribution over time.</p>
+            <p className="text-xs font-medium text-emerald-800/80 mt-1">Real-time incident frequency wave distribution over time.</p>
           </div>
-          <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-            Dynamic Monotone Wave
+          <span className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-emerald-600 text-white shadow-sm">
+            High-Contrast Wave
           </span>
         </div>
 
@@ -206,56 +215,56 @@ export default function WavePatternDashboard() {
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data.incident_trend}>
               <defs>
-                <linearGradient id="waveGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
+                <linearGradient id="vibrantWaveGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.5} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-              <Tooltip contentStyle={{ backgroundColor: "#0f172a", borderRadius: "14px", border: "none", color: "#fff", fontSize: "12px", boxShadow: "0 10px 25px -5px rgba(15, 23, 42, 0.3)" }} />
-              <Area type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={3.5} fillOpacity={1} fill="url(#waveGradient)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#a7f3d0" vertical={false} />
+              <XAxis dataKey="date" stroke="#065f46" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} />
+              <YAxis stroke="#065f46" fontSize={12} fontWeight="bold" tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ backgroundColor: "#064e3b", borderRadius: "14px", border: "2px solid #34d399", color: "#fff", fontSize: "12px", fontWeight: "bold" }} />
+              <Area type="monotone" dataKey="count" stroke="#059669" strokeWidth={4} fillOpacity={1} fill="url(#vibrantWaveGradient)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* ── Main Content Grid: Recent Active Incidents & Agent Executions ─────── */}
+      {/* ── 4. Main Grid: Active Incidents & Agent Executions ───────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left 2 Columns */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Active Incidents Triage List */}
-          <div className="frost-card p-7 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+          {/* Active Incidents List */}
+          <div className="vibrant-card p-7 space-y-5">
+            <div className="flex items-center justify-between border-b border-emerald-100 pb-4">
               <div>
-                <h2 className="text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-lg font-black text-emerald-950 tracking-tight flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-emerald-600" />
                   Recent Active Incidents Triage
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5 font-medium">Real-time incident feed being triaged by autonomous agents.</p>
+                <p className="text-xs text-emerald-800/80 mt-0.5 font-medium">Live incidents being triaged by autonomous AI pipeline.</p>
               </div>
-              <Link href="/incidents" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+              <Link href="/incidents" className="text-xs font-black text-emerald-700 hover:text-emerald-900 flex items-center gap-1">
                 View All <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             <div className="space-y-3">
               {data.recent_incidents.map((inc) => (
-                <div key={inc.id} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex items-center justify-between gap-4 hover:border-indigo-200 transition">
-                  <div className="space-y-1 min-w-0 flex-1">
+                <div key={inc.id} className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/90 flex items-center justify-between gap-4">
+                  <div className="space-y-1.5 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-sm text-slate-900 truncate">
+                      <span className="font-black text-sm text-emerald-950 truncate">
                         {inc.type.replace(/_/g, " ").toUpperCase()}
                       </span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200">
+                      <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-black bg-emerald-800 text-white">
                         {inc.tower_name}
                       </span>
                       <SeverityBadge severity={inc.severity} />
                     </div>
-                    <p className="text-xs text-slate-500 font-medium">
+                    <p className="text-xs text-emerald-800/70 font-semibold">
                       Detected: {new Date(inc.detected_at).toLocaleTimeString()}
                     </p>
                   </div>
@@ -265,7 +274,7 @@ export default function WavePatternDashboard() {
                     {!resolvedMap[inc.id] && inc.status !== "resolved" && (
                       <button
                         onClick={() => handleResolve(inc.id)}
-                        className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
+                        className="px-3.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-950 text-white font-extrabold text-xs transition cursor-pointer shadow-md"
                       >
                         Resolve
                       </button>
@@ -276,34 +285,34 @@ export default function WavePatternDashboard() {
             </div>
           </div>
 
-          {/* LangGraph Agent Execution Table */}
-          <div className="frost-card p-7 space-y-5">
-            <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-lg font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-                <Bot className="w-5 h-5 text-indigo-600" />
+          {/* LangGraph Agent Execution Metrics */}
+          <div className="vibrant-card p-7 space-y-5">
+            <div className="border-b border-emerald-100 pb-4">
+              <h2 className="text-lg font-black text-emerald-950 tracking-tight flex items-center gap-2">
+                <Bot className="w-5 h-5 text-emerald-600" />
                 LangGraph Multi-Agent Execution Metrics
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium">Execution stats across autonomous diagnostic nodes today.</p>
+              <p className="text-xs text-emerald-800/80 mt-0.5 font-medium">Execution stats across autonomous diagnostic nodes today.</p>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
+                  <tr className="border-b border-emerald-200 text-emerald-900 font-black uppercase tracking-wider">
                     <th className="pb-3">Agent Node</th>
                     <th className="pb-3">Executions</th>
                     <th className="pb-3">Avg Latency</th>
                     <th className="pb-3">Success Rate</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-800 font-medium">
+                <tbody className="divide-y divide-emerald-100 text-emerald-950 font-bold">
                   {data.agent_activity.map((ag) => (
-                    <tr key={ag.agent_name} className="hover:bg-slate-50/80">
-                      <td className="py-3 font-bold text-slate-900">{ag.agent_name}</td>
+                    <tr key={ag.agent_name} className="hover:bg-emerald-50/80">
+                      <td className="py-3 font-extrabold text-emerald-950">{ag.agent_name}</td>
                       <td className="py-3">{ag.executions_today}</td>
-                      <td className="py-3 font-mono text-indigo-600 font-semibold">{ag.avg_execution_time_ms} ms</td>
+                      <td className="py-3 font-mono text-emerald-700 font-extrabold">{ag.avg_execution_time_ms} ms</td>
                       <td className="py-3">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-700 text-white">
                           {(ag.success_rate * 100).toFixed(0)}%
                         </span>
                       </td>
@@ -320,30 +329,30 @@ export default function WavePatternDashboard() {
         <div className="space-y-6">
           
           {/* Incident Severity Distribution */}
-          <div className="frost-card p-6 space-y-4">
-            <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <TrendingUp className="w-4 h-4 text-indigo-600" />
+          <div className="vibrant-card p-6 space-y-4">
+            <h3 className="font-black text-base text-emerald-950 flex items-center gap-2 border-b border-emerald-100 pb-3">
+              <TrendingUp className="w-4 h-4 text-emerald-600" />
               Severity Breakdown
             </h3>
 
             <div className="space-y-3">
               {Object.entries(data.severity_distribution).map(([sev, count]) => (
-                <div key={sev} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                <div key={sev} className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/80 border border-emerald-200/90">
                   <SeverityBadge severity={sev} />
-                  <span className="font-extrabold text-sm text-slate-900">{count} events</span>
+                  <span className="font-black text-sm text-emerald-950">{count} events</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Ranked Contractors Snapshot */}
-          <div className="frost-card p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
-                <HardHat className="w-4 h-4 text-indigo-600" />
+          <div className="vibrant-card p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
+              <h3 className="font-black text-base text-emerald-950 flex items-center gap-2">
+                <HardHat className="w-4 h-4 text-emerald-600" />
                 Ranked Contractors
               </h3>
-              <Link href="/contractors" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">
+              <Link href="/contractors" className="text-xs font-black text-emerald-700 hover:text-emerald-900">
                 View All
               </Link>
             </div>
@@ -354,12 +363,12 @@ export default function WavePatternDashboard() {
                 { name: "Voltaic Power Solutions", specialty: "Electrical Substation", rating: 4.8 },
                 { name: "RapidRepair Elite", specialty: "Emergency Repair", rating: 4.7 },
               ].map((c, i) => (
-                <div key={c.name} className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                <div key={c.name} className="p-3 rounded-2xl bg-emerald-50/80 border border-emerald-200/90 flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-xs text-slate-900">#{i + 1} {c.name}</p>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">{c.specialty}</p>
+                    <p className="font-extrabold text-xs text-emerald-950">#{i + 1} {c.name}</p>
+                    <p className="text-[10px] text-emerald-800 font-semibold mt-0.5">{c.specialty}</p>
                   </div>
-                  <span className="text-xs font-extrabold text-amber-600">★ {c.rating}</span>
+                  <span className="text-xs font-black bg-amber-400 text-slate-950 px-2 py-0.5 rounded-lg shadow-xs">★ {c.rating}</span>
                 </div>
               ))}
             </div>
