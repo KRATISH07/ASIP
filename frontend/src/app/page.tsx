@@ -1,486 +1,373 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import Link from "next/link";
-import { dashboardApi, incidentsApi, type DashboardOut, type IncidentOut } from "@/lib/api";
 import {
   AlertTriangle, CheckCircle2, Flame, Activity,
-  Zap, Droplets, TrendingUp, Bot, ArrowRight, ExternalLink
+  Zap, Droplets, TrendingUp, Bot, ArrowRight,
+  ShieldCheck, Wrench, Building2, Bell, Sparkles,
+  Users, RefreshCw, ChevronRight, PlusCircle, Check,
+  HardHat
 } from "lucide-react";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend,
-} from "recharts";
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: "#ef4444",
-  high: "#f97316",
-  medium: "#eab308",
-  low: "#22c55e",
-};
+// Mock Management Data (Runs 100% Client-Side with 0 DB overhead)
+const TOWERS = [
+  { id: "A", name: "Tower A (Orchid)", residents: 120, status: "warning", issue: "Water Pressure Drop (3.1 bar)", health: 92 },
+  { id: "B", name: "Tower B (Lotus)", residents: 145, status: "healthy", issue: "All Systems Normal", health: 98 },
+  { id: "C", name: "Tower C (Jasmine)", residents: 110, status: "healthy", issue: "All Systems Normal", health: 100 },
+  { id: "D", name: "Tower D (Tulip)", residents: 130, status: "healthy", issue: "All Systems Normal", health: 96 },
+];
 
-const SEVERITY_BG: Record<string, string> = {
-  critical: "from-red-500/20 to-red-600/10 border-red-500/20",
-  high: "from-orange-500/20 to-orange-600/10 border-orange-500/20",
-  medium: "from-yellow-500/20 to-yellow-600/10 border-yellow-500/20",
-  low: "from-green-500/20 to-green-600/10 border-green-500/20",
-};
+const RECENT_INCIDENTS = [
+  {
+    id: "INC-8492",
+    title: "Water Pressure Drop on Upper Floors",
+    tower: "Tower A (Orchid)",
+    severity: "high",
+    status: "in_progress",
+    category: "Plumbing & Hydraulics",
+    ai_summary: "Infrastructure Agent identified booster pump #2 pressure regulator failure. Auto-assigned to Apex Plumbing.",
+    contractor: "Apex Plumbing & Pumps",
+    cost_est: "$450 - $600",
+    time_est: "1.5 hrs",
+    time_ago: "14 mins ago"
+  },
+  {
+    id: "INC-8490",
+    title: "Transformer Phase B Voltage Spike",
+    tower: "Tower D (Tulip)",
+    severity: "medium",
+    status: "analyzing",
+    category: "Electrical Substation",
+    ai_summary: "Monitoring Agent detected 435V surge. Decision Agent recommended automated load balancing check.",
+    contractor: "Voltaic Power Solutions",
+    cost_est: "$200 - $350",
+    time_est: "45 mins",
+    time_ago: "42 mins ago"
+  },
+  {
+    id: "INC-8488",
+    title: "Elevator #2 Emergency Brake Sensor Alert",
+    tower: "Tower B (Lotus)",
+    severity: "low",
+    status: "resolved",
+    category: "Elevator Systems",
+    ai_summary: "Routine sensor check passed. Reset command issued via IoT Edge Gateway successfully.",
+    contractor: "ElevateX Maintenance",
+    cost_est: "$0 (Covered under AMC)",
+    time_est: "Resolved",
+    time_ago: "2 hrs ago"
+  }
+];
 
-function KPICard({
-  title, value, subtitle, icon: Icon,
-}: {
-  title: string; value: number | string; subtitle?: string;
-  icon: React.ElementType; gradient?: string;
-}) {
+const TOP_CONTRACTORS = [
+  { name: "Apex Plumbing & Pumps", specialty: "Hydraulic & Water Systems", rating: 4.9, jobs: 42, speed: "Fast (< 1 hr)" },
+  { name: "Voltaic Power Solutions", specialty: "High Voltage Electrical", rating: 4.8, jobs: 38, speed: "24/7 Priority" },
+  { name: "RapidRepair Elite", specialty: "Civil & Emergency Repair", rating: 4.7, jobs: 55, speed: "Same-Day" },
+];
+
+const AI_AGENT_LOGS = [
+  { time: "14 mins ago", agent: "InfrastructureAgent", action: "Diagnosed Booster Pump #2 regulator anomaly in Tower A." },
+  { time: "18 mins ago", agent: "ContractorAgent", action: "Ranked Apex Plumbing #1 using Thompson Sampling (Confidence: 94%)." },
+  { time: "22 mins ago", agent: "CommunicationAgent", action: "Sent push notification to 120 residents of Tower A." },
+  { time: "45 mins ago", agent: "DecisionAgent", action: "Auto-dispatched voltage stabilizer check for Substation D." },
+];
+
+export default function OperationsDashboard() {
+  const { user } = useAuth();
+  const [incidents, setIncidents] = useState(RECENT_INCIDENTS);
+  const [resolvedCount, setResolvedCount] = useState(1);
+  const [actionDone, setActionDone] = useState<Record<string, boolean>>({});
+
+  const handleResolve = (id: string) => {
+    setActionDone(prev => ({ ...prev, [id]: true }));
+    setIncidents(prev => prev.map(inc => inc.id === id ? { ...inc, status: "resolved" } : inc));
+    setResolvedCount(c => c + 1);
+  };
+
   return (
-    <div className="cream-card cream-card-hover relative overflow-hidden rounded-2xl p-5">
-      <div className="flex items-start justify-between">
+    <div className="min-h-screen bg-[#faf4e8] p-6 lg:p-8 animate-fade-in space-y-8">
+      
+      {/* ── Top Header & Live Society Health Bar ──────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-amber-200/80 rounded-3xl p-6 shadow-xl shadow-amber-900/5">
         <div>
-          <p className="text-xs font-bold text-amber-800/70 uppercase tracking-wider">{title}</p>
-          <p className="mt-2 text-4xl font-extrabold text-stone-900 tracking-tight tabular-nums">{value}</p>
-          {subtitle && <p className="mt-1.5 text-xs font-medium text-stone-500">{subtitle}</p>}
-        </div>
-        <div className="rounded-2xl bg-amber-100/60 border border-amber-200 p-3 shadow-xs text-amber-700">
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const colors: Record<string, string> = {
-    critical: "bg-red-50 text-red-700 border-red-200/80 font-bold",
-    high: "bg-amber-100 text-amber-800 border-amber-300 font-bold",
-    medium: "bg-yellow-50 text-yellow-800 border-yellow-200/80 font-semibold",
-    low: "bg-emerald-50 text-emerald-800 border-emerald-200/80 font-medium",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-wider ${colors[severity] || "bg-stone-100 text-stone-600"}`}>
-      {severity}
-    </span>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    detected: "bg-blue-100 text-blue-700",
-    analyzing: "bg-violet-100 text-violet-700",
-    action_planned: "bg-cyan-100 text-cyan-700",
-    in_progress: "bg-amber-100 text-amber-700",
-    resolved: "bg-green-100 text-emerald-700",
-    escalated: "bg-red-100 text-rose-700",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${colors[status] || "bg-stone-100 text-stone-500"}`}>
-      {status.replace(/_/g, " ")}
-    </span>
-  );
-}
-
-// ── Mock data (used when API is unavailable) ─────────────────────────────────
-const MOCK_DATA: DashboardOut = {
-  kpi: { total_incidents: 47, active_incidents: 8, critical_incidents: 3, resolved_today: 5 },
-  recent_incidents: [
-    { id: "1", type: "water_pressure_drop", severity: "critical", status: "analyzing", tower_name: "Tower A", detected_at: new Date().toISOString() },
-    { id: "2", type: "power_outage", severity: "high", status: "in_progress", tower_name: "Tower B", detected_at: new Date(Date.now() - 3600000).toISOString() },
-    { id: "3", type: "tank_overflow", severity: "medium", status: "resolved", tower_name: "Tower C", detected_at: new Date(Date.now() - 7200000).toISOString() },
-    { id: "4", type: "power_overload", severity: "high", status: "action_planned", tower_name: "Tower A", detected_at: new Date(Date.now() - 10800000).toISOString() },
-    { id: "5", type: "water_shortage", severity: "critical", status: "escalated", tower_name: "Tower B", detected_at: new Date(Date.now() - 14400000).toISOString() },
-  ],
-  agent_activity: [
-    { agent_name: "MonitoringAgent", executions_today: 288, avg_execution_time_ms: 12, success_rate: 1.0 },
-    { agent_name: "InfrastructureAgent", executions_today: 8, avg_execution_time_ms: 2340, success_rate: 0.875 },
-    { agent_name: "ImpactAnalysisAgent", executions_today: 8, avg_execution_time_ms: 145, success_rate: 1.0 },
-    { agent_name: "ContractorAgent", executions_today: 8, avg_execution_time_ms: 1820, success_rate: 1.0 },
-    { agent_name: "CommunicationAgent", executions_today: 8, avg_execution_time_ms: 2100, success_rate: 0.875 },
-    { agent_name: "SupervisorAgent", executions_today: 8, avg_execution_time_ms: 1950, success_rate: 1.0 },
-  ],
-  severity_distribution: { critical: 3, high: 5, medium: 12, low: 27 },
-  incident_trend: [
-    { date: "Jul 3", count: 4 },
-    { date: "Jul 4", count: 7 },
-    { date: "Jul 5", count: 5 },
-    { date: "Jul 6", count: 8 },
-    { date: "Jul 7", count: 3 },
-    { date: "Jul 8", count: 6 },
-    { date: "Jul 9", count: 9 },
-  ],
-};
-
-
-export default function DashboardPage() {
-  const { user, token: TOKEN } = useAuth();
-  const [data, setData] = useState<DashboardOut>(MOCK_DATA);
-  const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
-
-  // States for active incident inspection on dashboard
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedIncident, setSelectedIncident] = useState<IncidentOut | null>(null);
-  const [fetchingIncident, setFetchingIncident] = useState(false);
-
-  useEffect(() => {
-    if (user?.role === "resident") {
-      window.location.href = "/residence";
-      return;
-    }
-    if (user?.role === "sensor_gateway") {
-      window.location.href = "/sensor-buffer";
-      return;
-    }
-
-    setMounted(true);
-    if (TOKEN) {
-      dashboardApi.getSummary(TOKEN)
-        .then((res) => {
-          if (res.kpi.total_incidents === 0) {
-            setData(MOCK_DATA);
-          } else {
-            const blendedRecent = [...res.recent_incidents];
-            MOCK_DATA.recent_incidents.forEach(m => {
-              if (!blendedRecent.some(r => r.id === m.id)) {
-                blendedRecent.push(m);
-              }
-            });
-            setData({
-              ...res,
-              recent_incidents: blendedRecent,
-              kpi: {
-                total_incidents: res.kpi.total_incidents + MOCK_DATA.kpi.total_incidents,
-                active_incidents: res.kpi.active_incidents + MOCK_DATA.kpi.active_incidents,
-                critical_incidents: res.kpi.critical_incidents + MOCK_DATA.kpi.critical_incidents,
-                resolved_today: res.kpi.resolved_today + MOCK_DATA.kpi.resolved_today,
-              }
-            });
-          }
-        })
-        .catch(() => setData(MOCK_DATA))
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, [TOKEN]);
-
-  const handleSelectIncident = async (id: string) => {
-    if (selectedId === id) {
-      setSelectedId(null);
-      setSelectedIncident(null);
-      return;
-    }
-
-    setSelectedId(id);
-    setFetchingIncident(true);
-    try {
-      if (!TOKEN) throw new Error("No token");
-      const res = await incidentsApi.get(TOKEN, id);
-      setSelectedIncident(res);
-    } catch {
-      const activeItem = data.recent_incidents.find(i => i.id === id);
-      const isPower = activeItem?.type.includes("power");
-      const isOverflow = activeItem?.type.includes("overflow");
-      const isShortage = activeItem?.type.includes("shortage");
-
-      let rootCause = "Booster pump motor failure due to voltage fluctuation.";
-      let summary = "Booster water pump feed pressure dropped critically. Secondary bypass valve activation recommended.";
-      let plan = "1. Lock out power to Booster Pump 1.\n2. Open standard bypass loop B-1.\n3. Dispatch AquaFix Pro for motor replacement.";
-      let cost = 7800.00;
-      let duration = 2.0;
-      let contractor = "AquaFix Pro";
-      let contractorReason = "AquaFix is selected dynamically (Score: 97.5%) due to proximity, water specialization, and 1.5h response time.";
-
-      if (isPower) {
-        rootCause = "Main transformer feeder trip in sub-station due to phase overload.";
-        summary = "Blackout in Tower B. Diesel Generator backup must be engaged manually.";
-        plan = "1. Check DG battery cells and fuel meters.\n2. Switch main panel feeder grid to DG manually.\n3. Reset substation output relays.";
-        cost = 12500.00;
-        duration = 1.5;
-        contractor = "PowerSure Services";
-        contractorReason = "PowerSure holds the highest electrical load balance rating (96%) in our database.";
-      } else if (isOverflow) {
-        rootCause = "Feedback limit switch Float Valve assembly stuck open.";
-        summary = "Tower C upper water reservoir overflow detected. Gravity drainage active.";
-        plan = "1. Isolate inlet pump supply valves.\n2. Clean calcium deposition off float sensor trigger.\n3. Test flow level cut-offs.";
-        cost = 2400.00;
-        duration = 1.0;
-        contractor = "AquaFix Pro";
-        contractorReason = "AquaFix is pre-approved for all plumbing assets and is within 2km proximity.";
-      } else if (isShortage) {
-        rootCause = "Municipal supplier water grid leak outside outer perimeter gates.";
-        summary = "Society reservoir capacity dropped below critical safety buffer (4%).";
-        plan = "1. Ration water distribution schedules to morning and evening.\n2. Contract emergency water tanker transport.\n3. Fill central chamber.";
-        cost = 15000.00;
-        duration = 4.5;
-        contractor = "RapidRepair Elite";
-        contractorReason = "RapidRepair maintains emergency response vehicles matching water tanker logistics.";
-      }
-
-      const fallbackDetails: IncidentOut = {
-        id: id as any,
-        type: (activeItem?.type || "water_pressure_drop") as any,
-        severity: (activeItem?.severity || "critical") as any,
-        status: (activeItem?.status || "analyzing") as any,
-        confidence: 0.96,
-        description: activeItem?.type ? `Manually reported or sensor alert for ${activeItem.type.replace(/_/g, " ")}.` : "Critical telemetry breach.",
-        detected_at: activeItem?.detected_at || new Date().toISOString(),
-        root_cause: rootCause,
-        ai_decision: {
-          incident_summary: summary,
-          action_plan: plan,
-          estimated_resolution_hrs: duration,
-          prediction: {
-            predicted_outage_hrs: duration,
-            estimated_cost: cost
-          }
-        },
-        contractor_assignment: {
-          contractor_name: contractor,
-          estimated_cost: cost * 0.95,
-          estimated_time_hrs: duration,
-          selection_reasoning: contractorReason
-        }
-      };
-      setSelectedIncident(fallbackDetails);
-    } finally {
-      setFetchingIncident(false);
-    }
-  };
-
-  const pieData = Object.entries(data.severity_distribution).map(([name, value]) => ({
-    name, value, color: SEVERITY_COLORS[name] || "#6b7280",
-  }));
-
-  const systemDateString = mounted
-    ? new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })
-    : "";
-
-  return (
-    <div className="min-h-screen p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-stone-800">Operations Center</h1>
-          <p className="text-sm text-stone-500 mt-0.5">Real-time AI infrastructure monitoring · {systemDateString}</p>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs text-emerald-600 font-medium">All agents active</span>
-        </div>
-      </div>
-
-      {/* KPI Row */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <KPICard title="Total Incidents" value={data.kpi.total_incidents} subtitle="All time" icon={Activity} gradient="from-amber-100/80 to-amber-50 border-amber-200" />
-        <KPICard title="Active Incidents" value={data.kpi.active_incidents} subtitle="Needs attention" icon={AlertTriangle} gradient="from-orange-100/80 to-orange-50 border-orange-200" />
-        <KPICard title="Critical Alerts" value={data.kpi.critical_incidents} subtitle="Immediate action" icon={Flame} gradient="from-red-100/80 to-red-50 border-red-200" />
-        <KPICard title="Resolved Today" value={data.kpi.resolved_today} subtitle="Last 24 hours" icon={CheckCircle2} gradient="from-emerald-100/80 to-emerald-50 border-emerald-200" />
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Incident Trend */}
-        <div className="xl:col-span-2 rounded-2xl border border-stone-200 bg-white shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-stone-800 mb-4">7-Day Incident Trend</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={data.incident_trend}>
-              <defs>
-                <linearGradient id="incidentGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#d97706" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#d97706" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-              <XAxis dataKey="date" tick={{ fill: "#78716c", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#78716c", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #d6d3d1", borderRadius: 8, color: "#44403c" }} />
-              <Area type="monotone" dataKey="count" stroke="#d97706" strokeWidth={2} fill="url(#incidentGrad)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Severity Pie */}
-        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-stone-800 mb-4">Severity Distribution</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
-                {pieData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #d6d3d1", borderRadius: 8, color: "#44403c" }} />
-              <Legend formatter={(v) => <span className="text-xs text-stone-500 capitalize">{v}</span>} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Bottom Row: Recent Incidents + Agent Activity */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {/* Recent Incidents Panel */}
-        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-stone-800">Recent Incidents</h2>
-            {selectedId && (
-              <button onClick={() => { setSelectedId(null); setSelectedIncident(null); }} className="text-xs text-amber-600 hover:text-amber-500 font-semibold cursor-pointer">
-                Clear Selection
-              </button>
-            )}
+          <div className="flex items-center gap-2.5">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300/70">
+              🏛️ Greenwood Heights Society
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+              Live AI Operations Center
+            </span>
           </div>
-          
-          <div className={`grid grid-cols-1 ${selectedId ? "lg:grid-cols-2" : "grid-cols-1"} gap-4`}>
-            {/* List column */}
-            <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-              {data.recent_incidents.map((inc) => (
-                <button
-                  key={inc.id}
-                  onClick={() => handleSelectIncident(inc.id)}
-                  className={`w-full text-left flex items-center justify-between rounded-xl border px-4 py-3 hover:bg-stone-50 transition-all duration-200 cursor-pointer ${
-                    selectedId === inc.id
-                      ? "bg-amber-50 border-amber-300 shadow-inner"
-                      : "bg-stone-50 border-stone-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-2 h-2 flex-shrink-0 rounded-full" style={{ background: SEVERITY_COLORS[inc.severity] || "#6b7280" }} />
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-stone-800 truncate capitalize">{(inc as any).custom_type || inc.type.replace(/_/g, " ")}</p>
-                      <p className="text-[10px] text-stone-400 mt-0.5">
-                        {inc.tower_name} · {mounted ? new Date(inc.detected_at).toLocaleTimeString() : "..."}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                    <SeverityBadge severity={inc.severity} />
-                    <StatusBadge status={inc.status} />
-                    <ArrowRight className={`w-3.5 h-3.5 text-stone-400 transition-transform ${selectedId === inc.id ? "rotate-90 text-amber-600" : ""}`} />
-                  </div>
-                </button>
-              ))}
+          <h1 className="text-2xl lg:text-3xl font-black text-stone-900 tracking-tight mt-2">
+            Welcome back, {user?.full_name || "Society Administrator"} 👋
+          </h1>
+          <p className="text-xs lg:text-sm text-stone-500 mt-1 font-medium">
+            Autonomous multi-agent system monitoring 4 towers, 505 apartments, and 12 IoT sensor gateways.
+          </p>
+        </div>
+
+        {/* Quick Action Button */}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/incidents"
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white font-bold text-xs shadow-md shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Report Issue
+          </Link>
+          <Link
+            href="/notifications"
+            className="px-4 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs border border-stone-300/70 transition flex items-center gap-2"
+          >
+            <Bell className="w-4 h-4 text-amber-600" />
+            Broadcast Alert
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Live Society Utility Status Bar ───────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="mgmt-card p-4 flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200">
+            <Droplets className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Water Supply</p>
+            <p className="text-base font-extrabold text-stone-900 mt-0.5">4.2 bar <span className="text-[10px] font-semibold text-emerald-600">(Normal)</span></p>
+          </div>
+        </div>
+
+        <div className="mgmt-card p-4 flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200">
+            <Zap className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Power Grid</p>
+            <p className="text-base font-extrabold text-stone-900 mt-0.5">415V <span className="text-[10px] font-semibold text-emerald-600">(3-Phase Stable)</span></p>
+          </div>
+        </div>
+
+        <div className="mgmt-card p-4 flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Security Gates</p>
+            <p className="text-base font-extrabold text-stone-900 mt-0.5">2/2 Active <span className="text-[10px] font-semibold text-emerald-600">(Online)</span></p>
+          </div>
+        </div>
+
+        <div className="mgmt-card p-4 flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl bg-violet-50 text-violet-600 border border-violet-200">
+            <Bot className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">AI Operations</p>
+            <p className="text-base font-extrabold text-stone-900 mt-0.5">6 Agents <span className="text-[10px] font-semibold text-emerald-600">(Autonomous)</span></p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Content Grid: Active Maintenance + Towers & Contractors ───────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left 2 Columns: Active Maintenance & Infrastructure Incidents */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black text-stone-900 tracking-tight flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-amber-600" />
+                Active Property Maintenance & Incident Triage
+              </h2>
+              <p className="text-xs text-stone-500 mt-0.5 font-medium">
+                Live AI-triaged complaints and infrastructure sensor diagnostics.
+              </p>
             </div>
-
-            {/* AI Solution & Contractor Details column */}
-            {selectedId && (
-              <div className="border-t lg:border-t-0 lg:border-l border-stone-200 pt-4 lg:pt-0 lg:pl-4 space-y-4 max-h-[350px] overflow-y-auto pr-1">
-                {fetchingIncident ? (
-                  <div className="h-full flex flex-col items-center justify-center py-20 space-y-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-600" />
-                    <span className="text-[10px] text-stone-400">Querying agent reports...</span>
-                  </div>
-                ) : selectedIncident ? (
-                  <div className="space-y-4 animate-fadeIn">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500">Diagnosis & Root Cause</h4>
-                        <p className="text-xs text-stone-700 font-medium mt-1.5 bg-stone-50 px-3 py-2 rounded-lg border border-stone-200">
-                          {selectedIncident.root_cause || "Analyzing incident telemetry..."}
-                        </p>
-                      </div>
-                      <Link
-                        href={`/incidents?id=${selectedId}`}
-                        className="text-[10px] text-amber-600 hover:text-amber-500 font-semibold flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 cursor-pointer"
-                      >
-                        Details <ExternalLink className="w-2.5 h-2.5" />
-                      </Link>
-                    </div>
-                    
-                    {/* Solution Plan */}
-                    {(selectedIncident.ai_decision?.action_plan || selectedIncident.ai_decision?.incident_summary) && (
-                      <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Solution Plan</span>
-                          {selectedIncident.ai_decision?.estimated_resolution_hrs && (
-                            <span className="text-[9px] text-emerald-600 font-semibold bg-emerald-100 px-2 py-0.5 rounded-full">
-                              Est: {selectedIncident.ai_decision.estimated_resolution_hrs}h
-                            </span>
-                          )}
-                        </div>
-                        {/* Predicted Cost and Duration */}
-                        {selectedIncident.ai_decision?.prediction && (
-                          <div className="grid grid-cols-2 gap-2 bg-emerald-100/60 p-2 rounded-lg border border-emerald-200 mb-2 text-[10px]">
-                            <div>
-                              <p className="text-[8px] text-emerald-700 font-bold uppercase tracking-wider">Predicted Cost</p>
-                              <p className="font-bold text-stone-800">₹{selectedIncident.ai_decision.prediction.estimated_cost?.toLocaleString()}</p>
-                            </div>
-                            <div>
-                              <p className="text-[8px] text-emerald-700 font-bold uppercase tracking-wider">Predicted Outage</p>
-                              <p className="font-bold text-stone-800">{selectedIncident.ai_decision.prediction.predicted_outage_hrs?.toFixed(1)} hrs</p>
-                            </div>
-                          </div>
-                        )}
-                        {selectedIncident.ai_decision?.incident_summary && (
-                          <p className="text-[11px] text-stone-600 font-medium leading-relaxed">
-                            {selectedIncident.ai_decision.incident_summary}
-                          </p>
-                        )}
-                        {selectedIncident.ai_decision?.action_plan && (
-                          <p className="text-[10px] text-stone-500 whitespace-pre-line leading-relaxed pt-2 border-t border-emerald-200">
-                            {selectedIncident.ai_decision.action_plan}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Dispatched Contractor */}
-                    {selectedIncident.contractor_assignment && (
-                      <div className="rounded-xl bg-stone-50 border border-stone-200 p-3.5 space-y-2">
-                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Recommended Contractor</span>
-                        <div className="flex items-center justify-between pt-1">
-                          <Link
-                            href={`/contractors?highlight=${encodeURIComponent(selectedIncident.contractor_assignment.contractor_name)}`}
-                            className="text-xs font-bold text-amber-600 hover:text-amber-500 hover:underline cursor-pointer inline-flex items-center gap-1 group"
-                          >
-                            {selectedIncident.contractor_assignment.contractor_name}
-                            <ExternalLink className="w-3 h-3 text-stone-400 group-hover:text-amber-600 transition-colors" />
-                          </Link>
-                          <span className="text-xs text-amber-700 font-bold bg-amber-100 px-2 py-0.5 rounded-full">
-                            ₹{selectedIncident.contractor_assignment.estimated_cost?.toLocaleString()}
-                          </span>
-                        </div>
-                        {selectedIncident.contractor_assignment.selection_reasoning && (
-                          <p className="text-[10px] text-stone-400 italic leading-relaxed pt-2 border-t border-stone-200 font-sans">
-                            {selectedIncident.contractor_assignment.selection_reasoning}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-stone-400 text-center py-10">Select an active incident to view live AI plans.</p>
-                )}
-              </div>
-            )}
+            <Link
+              href="/incidents"
+              className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 group"
+            >
+              View All <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
-        </div>
 
-        {/* Agent Activity */}
-        <div className="rounded-2xl border border-stone-200 bg-white shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-stone-800 mb-4">Agent Activity (Today)</h2>
-          <div className="space-y-3">
-            {data.agent_activity.map((agent) => (
-              <div key={agent.agent_name} className="flex items-center gap-3">
-                <div className="w-8 h-8 flex-shrink-0 rounded-lg bg-violet-100 border border-violet-200 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-violet-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-medium text-stone-800 truncate">{agent.agent_name}</p>
-                    <span className="text-xs text-stone-500">{agent.executions_today} runs</span>
+          {/* Incident Cards */}
+          <div className="space-y-4">
+            {incidents.map((inc) => (
+              <div key={inc.id} className="mgmt-card p-5 space-y-4">
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200">
+                        {inc.id}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
+                        📍 {inc.tower}
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider border ${
+                        inc.severity === "critical" ? "bg-red-50 text-red-700 border-red-200" :
+                        inc.severity === "high" ? "bg-amber-100 text-amber-800 border-amber-300" :
+                        "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      }`}>
+                        {inc.severity} priority
+                      </span>
+                    </div>
+                    <h3 className="text-base font-extrabold text-stone-900 mt-2">{inc.title}</h3>
                   </div>
-                  <div className="w-full bg-stone-100 rounded-full h-1.5">
-                    <div
-                      className="h-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500"
-                      style={{ width: `${agent.success_rate * 100}%` }}
-                    />
+                  <span className="text-[11px] font-medium text-stone-400 flex-shrink-0">{inc.time_ago}</span>
+                </div>
+
+                {/* AI Summary Box */}
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-200/80 flex items-start gap-3">
+                  <div className="p-1.5 rounded-lg bg-amber-500 text-white flex-shrink-0 mt-0.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                  <p className="text-xs font-medium text-stone-800 leading-relaxed">
+                    <strong className="font-bold text-amber-900">AI Diagnostic Summary:</strong> {inc.ai_summary}
+                  </p>
+                </div>
+
+                {/* Footer Meta & Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-stone-100 text-xs text-stone-600">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <span className="text-[10px] font-bold text-stone-400 block uppercase">Recommended Contractor</span>
+                      <span className="font-bold text-stone-800">{inc.contractor}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold text-stone-400 block uppercase">Cost Estimate</span>
+                      <span className="font-semibold text-emerald-700">{inc.cost_est}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {inc.status === "resolved" || actionDone[inc.id] ? (
+                      <span className="px-3 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-600" /> Resolved
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleResolve(inc.id)}
+                        className="px-3.5 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        Approve & Mark Resolved
+                      </button>
+                    )}
                   </div>
                 </div>
-                <span className="text-[10px] text-emerald-600 flex-shrink-0">{(agent.success_rate * 100).toFixed(0)}%</span>
               </div>
             ))}
           </div>
+
+          {/* ── Society Towers Health Grid ────────────────────────────────────── */}
+          <div className="space-y-4 pt-4">
+            <h2 className="text-lg font-black text-stone-900 tracking-tight flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-amber-600" />
+              Society Towers Infrastructure Health
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {TOWERS.map((t) => (
+                <div key={t.id} className="mgmt-card p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm ${
+                      t.status === "warning" ? "bg-amber-100 text-amber-900 border border-amber-300" : "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                    }`}>
+                      {t.id}
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-stone-900">{t.name}</h4>
+                      <p className="text-[11px] text-stone-500 font-medium">{t.residents} Residents • {t.issue}</p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-base font-black text-stone-900">{t.health}%</span>
+                    <span className="block text-[9px] font-bold text-stone-400 uppercase">Health Score</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {/* Right Column: Top Contractors & Live AI Log Stream ───────────────── */}
+        <div className="space-y-6">
+          
+          {/* Top Ranked Contractors */}
+          <div className="mgmt-card p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
+                <HardHat className="w-4 h-4 text-amber-600" />
+                Ranked Contractors (Thompson Sampling)
+              </h3>
+              <Link href="/contractors" className="text-[11px] font-bold text-amber-700 hover:text-amber-800">
+                View All
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {TOP_CONTRACTORS.map((c, i) => (
+                <div key={c.name} className="p-3 rounded-xl bg-stone-50 border border-stone-200/80 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-4 h-4 rounded-full bg-amber-500 text-white font-bold text-[9px] flex items-center justify-center">
+                        #{i + 1}
+                      </span>
+                      <p className="font-extrabold text-xs text-stone-900">{c.name}</p>
+                    </div>
+                    <p className="text-[10px] text-stone-500 mt-0.5 font-medium">{c.specialty} • {c.speed}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-black text-amber-800">★ {c.rating}</span>
+                    <span className="block text-[9px] text-stone-400">{c.jobs} Jobs</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Live AI Operations Execution Feed */}
+          <div className="mgmt-card p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
+                <Bot className="w-4 h-4 text-amber-600" />
+                Live Autonomous AI Agent Log
+              </h3>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            </div>
+
+            <div className="space-y-3">
+              {AI_AGENT_LOGS.map((log, i) => (
+                <div key={i} className="p-3 rounded-xl bg-[#fffef9] border border-amber-200/60 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                      {log.agent}
+                    </span>
+                    <span className="text-[9px] font-medium text-stone-400">{log.time}</span>
+                  </div>
+                  <p className="text-[11px] font-medium text-stone-700 leading-snug pt-1">
+                    {log.action}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <Link
+              href="/agent-logs"
+              className="w-full py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-200/80 transition flex items-center justify-center gap-1"
+            >
+              Inspect Agent Logs Stream <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+        </div>
+
       </div>
+
     </div>
   );
 }
