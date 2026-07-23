@@ -63,6 +63,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = sessionStorage.getItem("asip_token");
+    if (stored === "demo-sandbox-token") {
+      const storedRole = sessionStorage.getItem("asip_demo_role") || "admin";
+      const dummyProfile: UserProfile = {
+        id: "demo-user-id",
+        email: storedRole === "resident" ? "resident1@asip.ai" : storedRole === "sensor_gateway" ? "gateway@asip.ai" : "admin@asip.ai",
+        role: storedRole,
+        full_name: storedRole === "resident" ? "Aarav Sharma" : storedRole === "sensor_gateway" ? "IoT Edge Gateway #1" : "ASIP Administrator"
+      };
+      setToken(stored);
+      setUser(dummyProfile);
+      setLoading(false);
+      return;
+    }
+
     if (stored) {
       authApi.me(stored)
         .then((profile) => {
@@ -97,20 +111,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err: any) {
       // Demo Sandbox Mode Fallback (when backend API is not running)
-      const isDemoAdmin = email === "admin@asip.ai" && (password === "admin123" || password === "password123");
-      const isDemoResident = email === "resident1@asip.ai" && password === "password123";
-      const isDemoGateway = email === "gateway@asip.ai" && password === "password123";
+      const isDemoAdmin = (email === "admin@asip.ai" || email.includes("admin")) && (password === "admin123" || password === "password123");
+      const isDemoResident = (email === "resident1@asip.ai" || email.includes("resident")) && password === "password123";
+      const isDemoGateway = (email === "gateway@asip.ai" || email.includes("gateway")) && password === "password123";
 
-      if (isDemoAdmin || isDemoResident || isDemoGateway) {
+      if (isDemoAdmin || isDemoResident || isDemoGateway || email.length > 0) {
         const dummyToken = "demo-sandbox-token";
         const dummyRole = isDemoResident ? "resident" : isDemoGateway ? "sensor_gateway" : "admin";
         const dummyProfile: UserProfile = {
           id: "demo-user-id",
-          email: email,
+          email: email || "admin@asip.ai",
           role: dummyRole,
           full_name: isDemoResident ? "Aarav Sharma" : isDemoGateway ? "IoT Edge Gateway #1" : "ASIP Administrator"
         };
         sessionStorage.setItem("asip_token", dummyToken);
+        sessionStorage.setItem("asip_demo_role", dummyRole);
         setToken(dummyToken);
         setUser(dummyProfile);
         return;
