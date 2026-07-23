@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f6f8;
+  --background: #fafafc;
   --foreground: #0f172a;
   --card-bg: #ffffff;
-  --accent-teal: #0d9488;
+  --accent-violet: #6366f1;
 }
 
 @theme inline {
@@ -21,26 +21,26 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Crisp selection highlight */
+/* Electric Violet Selection */
 ::selection {
-  background: #ccfbf1;
-  color: #0f766e;
+  background: #e0e7ff;
+  color: #3730a3;
 }
 
-/* Smooth pearl scrollbar */
+/* Smooth Violet Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f4f6f8;
+  background: #fafafc;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #c7d2fe;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #0d9488;
+  background: #6366f1;
 }
 
 /* Animations */
@@ -49,21 +49,34 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes waveFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Luxury Pearl Management Cards */
-.pearl-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
-  border-radius: 1.25rem;
-  transition: all 0.2s ease-in-out;
+.animate-wave-float {
+  animation: waveFloat 6s ease-in-out infinite;
 }
 
-.pearl-card:hover {
-  transform: translateY(-2px);
-  border-color: #0d9488;
-  box-shadow: 0 12px 24px -4px rgba(13, 148, 136, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
+/* Frost & Electric Cards */
+.frost-card {
+  background: #ffffff;
+  border: 1px solid #e0e7ff;
+  box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.05), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+  border-radius: 1.5rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.frost-card:hover {
+  transform: translateY(-3px);
+  border-color: #818cf8;
+  box-shadow: 0 16px 32px -4px rgba(99, 102, 241, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+.wave-glow-bg {
+  background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08), transparent 70%);
 }
