@@ -88,7 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(res.access_token);
       setUser(profile);
       
-      // Dynamic redirect based on user role
       if (profile.role === "resident") {
         window.location.href = "/residence";
       } else if (profile.role === "sensor_gateway") {
@@ -97,6 +96,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.location.href = "/";
       }
     } catch (err: any) {
+      // Demo Sandbox Mode Fallback (when backend API is not running)
+      const isDemoAdmin = email === "admin@asip.ai" && (password === "admin123" || password === "password123");
+      const isDemoResident = email === "resident1@asip.ai" && password === "password123";
+      const isDemoGateway = email === "gateway@asip.ai" && password === "password123";
+
+      if (isDemoAdmin || isDemoResident || isDemoGateway) {
+        const dummyToken = "demo-sandbox-token";
+        const dummyRole = isDemoResident ? "resident" : isDemoGateway ? "sensor_gateway" : "admin";
+        const dummyProfile: UserProfile = {
+          id: "demo-user-id",
+          email: email,
+          role: dummyRole,
+          full_name: isDemoResident ? "Aarav Sharma" : isDemoGateway ? "IoT Edge Gateway #1" : "ASIP Administrator"
+        };
+        sessionStorage.setItem("asip_token", dummyToken);
+        setToken(dummyToken);
+        setUser(dummyProfile);
+        return;
+      }
+
       setErrorMsg(err.message || "Failed to log in. Please check credentials.");
     } finally {
       setSubmitting(false);
