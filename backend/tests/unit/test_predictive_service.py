@@ -8,7 +8,14 @@ connections are needed.
 Expected total: 6 new tests → 27 passing overall (21 existing + 6 new).
 """
 import pytest
+from unittest.mock import patch, mock_open
 from app.services.predictive_service import predict_impact
+
+@pytest.fixture(autouse=True)
+def mock_no_ml_models():
+    """Ensure ML models are not loaded during fallback/historical unit tests."""
+    with patch("app.services.predictive_service._load_models", return_value=None):
+        yield
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -165,3 +172,44 @@ async def test_invalid_severity_does_not_crash(severity):
     assert "confidence_score" in prediction
     assert "predicted_residents" in prediction
     assert 0.0 <= prediction["confidence_score"] <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# Case 7 — Model cache invalidation on file mtime change
+# ---------------------------------------------------------------------------
+
+class TestModelCacheInvalidation:
+    @pytest.fixture(autouse=True)
+    def mock_no_ml_models(self):
+        # Override autouse fixture to do nothing
+        pass
+
+    def test_model_cache_invalidation_on_mtime_change(self):
+        from app.services.predictive_service import _load_models, clear_model_cache
+        
+        clear_model_cache()
+        
+        # Mock file paths and existence
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open(read_data='{"schema_hash": "dummy_hash"}')),
+            patch("app.services.predictive_service.get_feature_schema_hash", return_value="dummy_hash"),
+            patch("joblib.load", return_value="mocked_model"),
+            # First call getmtime returns 100.0, second check returns 100.0 (cache hit), third check returns 200.0 (cache invalidate)
+            patch("os.path.getmtime", side_effect=[100.0, 100.0, 200.0])
+        ):
+            # 1. First load: should execute loading logic and populate cache
+            models1 = _load_models()
+            assert models1 is not None
+            assert models1["_mtime"] == 100.0
+            
+            # 2. Second load: mtime is still 100.0, should return cached object directly
+            models2 = _load_models()
+            assert models2 is models1
+            
+            # 3. Third load: mtime is 200.0 (simulating metadata.json update on disk)
+            # The cache must be invalidated and reloaded (creating a new dictionary object)
+            models3 = _load_models()
+            assert models3 is not models1
+            assert models3["_mtime"] == 200.0
+

@@ -83,32 +83,41 @@ async def contractor_agent(state: ASIPState) -> ASIPState:
         "historical_incidents": str(history),
     }
 
-    llm = get_llm(temperature=0.1)
-    try:
-        recommendation: ContractorRecommendation = await invoke_chain(CONTRACTOR_PROMPT, llm, JsonOutputParser(), payload)
-        logger.info("Contractor selected via LLM", name=recommendation.get("contractor_name"))
-    except Exception:
-        # Fallback: pick top ranked candidate
-        top = candidates[0] if candidates else None
-        if top:
-            # historical_evidence may be empty; guard against IndexError
-            first_hist = (top.get("historical_evidence") or [{}])[0] if isinstance(top, dict) else {}
-            est_cost = float(first_hist.get("repair_cost", 0) or 0)
-            est_time = float((top.get("breakdown") or {}).get("repair_time_score", 0) or 0)
-            recommendation = {
-                "contractor_id": top.get("contractor_id"),
-                "contractor_name": top.get("name"),
-                "estimated_cost": est_cost,
-                "estimated_time_hrs": est_time,
-                "selection_reasoning": "Selected based on data-driven score breakdown.",
-            }
-        else:
-            recommendation = {
-                "contractor_id": None,
-                "contractor_name": "No contractor available",
-                "estimated_cost": 0.0,
-                "estimated_time_hrs": 0.0,
-                "selection_reasoning": "No available contractors",
-            }
+    llm = get_llm(task_type="extraction", temperature=0.1)
+    from app.core.llm.fallback import invoke_with_fallback
+    from app.agents.schemas import ContractorSelection
+    recommendation: dict = await invoke_with_fallback(
+        prompt=CONTRACTOR_PROMPT,
+        input_data=payload,
+        parser=JsonOutputParser(),
+        agent_type="contractor",
+        primary_llm=llm,
+        response_model=ContractorSelection,
+    )
+    # Ensure the mathematically best contractor candidate is selected, resolving any LLM hallucinations or selection variance
+    top = candidates[0] if candidates else None
+    
+    if top:
+        # Resolve metrics and cost predictions
+        first_hist = (top.get("historical_evidence") or [{}])[0] if isinstance(top, dict) else {}
+        est_cost = float(recommendation.get("estimated_cost") or first_hist.get("repair_cost") or 0)
+        est_time = float(recommendation.get("estimated_time_hrs") or top.get("avg_response_time_hrs") or 0)
+        
+        # Build the final contractor recommendation dictionary using database-verified fields
+        recommendation = {
+            "contractor_id": top.get("contractor_id"),
+            "contractor_name": top.get("name"),
+            "estimated_cost": est_cost,
+            "estimated_time_hrs": est_time,
+            "selection_reasoning": recommendation.get("selection_reasoning") or f"Selected {top.get('name')} based on situational priority and historical score breakdown.",
+        }
+    else:
+        recommendation = {
+            "contractor_id": None,
+            "contractor_name": "No contractor available",
+            "estimated_cost": 0.0,
+            "estimated_time_hrs": 0.0,
+            "selection_reasoning": "No available contractors found.",
+        }
 
     return {**state, "contractor_recommendation": recommendation, "next": "communication_agent"}

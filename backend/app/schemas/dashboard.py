@@ -17,6 +17,7 @@ class RecentIncidentSummary(BaseModel):
     status: str
     tower_name: Optional[str] = None
     detected_at: str
+    custom_type: Optional[str] = None
 
 
 class AgentActivitySummary(BaseModel):

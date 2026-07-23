@@ -57,6 +57,11 @@ MIN_SAMPLES = 3
 CORRECTION_FACTOR_MIN = 0.5
 CORRECTION_FACTOR_MAX = 2.0
 
+# Hard thresholds for retraining. If rolling MAE exceeds these, should_retrain triggers True.
+RETRAIN_THRESHOLD_DURATION_MAE = 12.0  # hours
+RETRAIN_THRESHOLD_COST_MAE = 15000.0  # USD
+ROLLING_WINDOW_SIZE = 100
+
 
 class CorrectionFactors(TypedDict):
     """Output of compute_correction_factors().
@@ -236,6 +241,59 @@ def compute_correction_factors(
     return result
 
 
+def evaluate_model_performance(
+    feedback_records: List[dict],
+    window_size: int = ROLLING_WINDOW_SIZE
+) -> dict:
+    """Compute rolling MAE over the most recent feedback records and determine if retraining is needed."""
+    records = list(feedback_records)
+    # Get the most recent records up to window_size
+    recent_records = records[-window_size:] if len(records) > window_size else records
+    
+    outage_errors = []
+    cost_errors = []
+    
+    for rec in recent_records:
+        pred_out = rec.get("predicted_outage_hrs")
+        act_out = rec.get("actual_outage_hrs")
+        pred_cost = rec.get("predicted_cost")
+        act_cost = rec.get("actual_cost")
+        
+        if pred_out is not None and act_out is not None:
+            try:
+                outage_errors.append(abs(float(pred_out) - float(act_out)))
+            except (TypeError, ValueError):
+                pass
+                
+        if pred_cost is not None and act_cost is not None:
+            try:
+                cost_errors.append(abs(float(pred_cost) - float(act_cost)))
+            except (TypeError, ValueError):
+                pass
+                
+    duration_mae = mean(outage_errors) if outage_errors else None
+    cost_mae = mean(cost_errors) if cost_errors else None
+    
+    should_retrain = False
+    reasons = []
+    
+    if duration_mae is not None and duration_mae > RETRAIN_THRESHOLD_DURATION_MAE:
+        should_retrain = True
+        reasons.append(f"Duration MAE ({duration_mae:.2f} hrs) exceeded threshold ({RETRAIN_THRESHOLD_DURATION_MAE} hrs)")
+        
+    if cost_mae is not None and cost_mae > RETRAIN_THRESHOLD_COST_MAE:
+        should_retrain = True
+        reasons.append(f"Cost MAE (${cost_mae:.2f}) exceeded threshold (${RETRAIN_THRESHOLD_COST_MAE})")
+        
+    return {
+        "duration_mae": round(duration_mae, 3) if duration_mae is not None else None,
+        "cost_mae": round(cost_mae, 3) if cost_mae is not None else None,
+        "should_retrain": should_retrain,
+        "reasons": reasons,
+        "sample_count": len(recent_records)
+    }
+
+
 def compute_aggregate_metrics(feedback_records: List[dict]) -> dict:
     """Compute aggregate learning metrics for the analytics endpoint.
 
@@ -254,9 +312,14 @@ def compute_aggregate_metrics(feedback_records: List[dict]) -> dict:
             "outage_correction_factor":     1.0,
             "cost_correction_factor":       1.0,
             "correction_applied":           False,
+            "duration_mae":                 None,
+            "cost_mae":                     None,
+            "should_retrain":               False,
+            "retrain_reasons":              [],
         }
 
     factors = compute_correction_factors(feedback_records)
+    eval_res = evaluate_model_performance(feedback_records)
 
     # Classify bias direction
     def _bias_label(bias: float) -> str:
@@ -305,6 +368,10 @@ def compute_aggregate_metrics(feedback_records: List[dict]) -> dict:
         "outage_correction_factor":     factors["outage_correction_factor"],
         "cost_correction_factor":       factors["cost_correction_factor"],
         "correction_applied":           factors["correction_applied"],
+        "duration_mae":                 eval_res["duration_mae"],
+        "cost_mae":                     eval_res["cost_mae"],
+        "should_retrain":               eval_res["should_retrain"],
+        "retrain_reasons":              eval_res["reasons"],
     }
 
 

@@ -3,10 +3,10 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_roles
 from app.repositories.notification_repo import AgentLogRepository
 from app.schemas.contractor import AgentLogOut
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
 
 router = APIRouter(prefix="/agent-logs", tags=["Agent Observability"])
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/agent-logs", tags=["Agent Observability"])
 @router.get("/", response_model=List[AgentLogOut], summary="List recent agent execution logs")
 async def list_logs(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = require_roles(UserRole.manager, UserRole.admin),
 ):
     repo = AgentLogRepository(db)
     logs = await repo.list_recent(limit=100)
@@ -29,7 +29,7 @@ async def list_logs(
 async def logs_by_incident(
     incident_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = require_roles(UserRole.manager, UserRole.admin),
 ):
     repo = AgentLogRepository(db)
     return await repo.list_by_incident(incident_id)

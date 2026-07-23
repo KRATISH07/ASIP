@@ -13,6 +13,10 @@ class SensorDataPayload(BaseModel):
     unit: str = Field(..., description="bar | liters | kW")
     timestamp: datetime
     metadata: Optional[dict] = None
+    idempotency_key: Optional[str] = Field(
+        None,
+        description="Client-generated unique key (e.g. UUID). If same key is seen within 5 minutes, returns the cached result."
+    )
 
 
 class IncidentCreate(BaseModel):
@@ -50,6 +54,7 @@ class IncidentOut(BaseModel):
     description: Optional[str] = None
     root_cause: Optional[str] = None
     ai_decision: Optional[dict] = None
+    sensor_data: Optional[dict] = None
     detected_at: datetime
     resolved_at: Optional[datetime] = None
     created_at: datetime

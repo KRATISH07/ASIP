@@ -18,11 +18,12 @@ class IncidentRepository:
         return incident
 
     async def get_by_id(self, incident_id: uuid.UUID) -> Optional[Incident]:
+        from app.db.models.contractor import ContractorAssignment
         result = await self.db.execute(
             select(Incident)
             .options(
                 selectinload(Incident.tower),
-                selectinload(Incident.contractor_assignment),
+                selectinload(Incident.contractor_assignment).selectinload(ContractorAssignment.contractor),
                 selectinload(Incident.agent_logs),
                 selectinload(Incident.notifications),
             )
@@ -51,9 +52,10 @@ class IncidentRepository:
             count_q = count_q.where(and_(*filters))
         total = (await self.db.execute(count_q)).scalar_one()
 
+        from app.db.models.contractor import ContractorAssignment
         q = (
             select(Incident)
-            .options(selectinload(Incident.contractor_assignment))
+            .options(selectinload(Incident.contractor_assignment).selectinload(ContractorAssignment.contractor))
             .order_by(Incident.detected_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)

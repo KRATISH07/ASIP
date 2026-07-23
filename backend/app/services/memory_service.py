@@ -28,8 +28,12 @@ async def store_incident_memory(state: dict) -> Any:
     severity = (state.get("incident_event") or {}).get("severity")
     affected_residents = (state.get("impact") or {}).get("estimated_residents")
     contractor_used = (state.get("contractor_recommendation") or {}).get("contractor_name")
-    repair_duration = (state.get("final_report") or {}).get("estimated_resolution_hrs")
     resolution_summary = (state.get("final_report") or {}).get("incident_summary")
+
+    # Extract predicted values from state
+    impact_prediction = (state.get("impact") or {}).get("impact_prediction") or {}
+    predicted_outage = impact_prediction.get("predicted_outage_hrs")
+    predicted_cost = impact_prediction.get("estimated_repair_cost")
 
     # Lazy import to avoid creating DB engine at module import time during tests
     from app.db.session import AsyncSessionFactory
@@ -44,8 +48,10 @@ async def store_incident_memory(state: dict) -> Any:
         severity=severity,
         affected_residents=affected_residents,
         contractor_used=contractor_used,
-        repair_duration_hours=repair_duration,
+        repair_duration_hours=None,  # Fix #1: None initially. Only feedback updates this with actuals.
         resolution_summary=resolution_summary,
+        predicted_outage_hrs=predicted_outage,
+        predicted_cost=predicted_cost,
     )
 
     async with AsyncSessionFactory() as db:

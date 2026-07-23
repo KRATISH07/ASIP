@@ -5,6 +5,29 @@ from app.repositories.contractor_repo import ContractorRepository
 from app.db.models.contractor import Contractor
 from app.db.models.contractor_history import ContractorHistory
 from datetime import datetime
+import numpy as np
+
+
+def _thompson_sample_success_rate(total_jobs: int, success_rate: float) -> float:
+    """Sample from the posterior Beta distribution over a contractor's success rate.
+
+    Models the contractor's true success probability as Beta(alpha, beta) where:
+        alpha = successes + 1  (Laplace smoothing)
+        beta  = failures  + 1
+
+    Why this matters:
+    - Contractor A: 2 jobs, 100% success → Beta(3, 1) — wide uncertainty, samples ~0.60-0.95
+    - Contractor B: 200 jobs, 95% success → Beta(191, 11) — tight, samples ~0.93-0.97
+    The fixed weighted formula treats both identically on success_rate.
+    Thompson Sampling naturally discounts low-sample contractors.
+
+    Cold-start property: a new contractor with 0 jobs gets Beta(1, 1) = Uniform[0,1].
+    This gives them a fair chance of selection on any given request — the system
+    explores new contractors without any manual configuration.
+    """
+    successes = max(0, int(round(total_jobs * max(0.0, min(1.0, success_rate)))))
+    failures  = max(0, total_jobs - successes)
+    return float(np.random.beta(successes + 1, failures + 1))
 
 
 def compute_ranking_from_data(contractors: List[Dict[str, Any]], history_map: Optional[Dict[str, List[Dict[str, Any]]]] = None, k: int = 5) -> List[Dict[str, Any]]:
@@ -64,13 +87,27 @@ def compute_ranking_from_data(contractors: List[Dict[str, Any]], history_map: Op
             "experience": 0.10,
         }
 
-        final_score = (
+        deterministic_score = (
             success_score * weights["success_rate"]
             + repair_score * weights["repair_time"]
             + feedback_score * weights["feedback"]
             + availability_score * weights["availability"]
             + experience_score * weights["experience"]
         )
+
+        # Fix #7: Thompson Sampling exploration bonus
+        # Blend deterministic score (60%) with sampled posterior (40%).
+        # The sampled component accounts for uncertainty in the success_rate estimate:
+        # - Contractors with many jobs: posterior is tight → sample ≈ deterministic
+        # - Contractors with few jobs: posterior is wide → sample can be high or low
+        # Net effect: new/unknown contractors occasionally rank first, enabling
+        # the system to discover better contractors without manual configuration.
+        thompson_sample = _thompson_sample_success_rate(
+            total_jobs=jobs,
+            success_rate=float(c.get("success_rate", 0.5) or 0.5),
+        ) * 100.0  # scale to match deterministic score range
+
+        final_score = 0.60 * deterministic_score + 0.40 * thompson_sample
 
         results.append(
             {
@@ -162,22 +199,50 @@ async def rank_contractors(db: AsyncSession, incident_type: Optional[str] = None
         else:
             experience_score = 50.0
 
-        # Weights
-        weights = {
-            "success_rate": 0.4,
-            "repair_time": 0.25,
-            "feedback": 0.15,
-            "availability": 0.10,
-            "experience": 0.10,
-        }
+        # Dynamic situation-based weights matching severity and emergency context
+        t = (incident_type or "").lower()
+        # Case A: Emergency situations where speed is critical (e.g. water shortage, power outage)
+        if "shortage" in t or "pressure" in t or "outage" in t:
+            weights = {
+                "success_rate": 0.25,
+                "repair_time": 0.55,  # Speed prioritized
+                "feedback": 0.10,
+                "availability": 0.05,
+                "experience": 0.05,
+            }
+        # Case B: Hazard / Safety / Structural issues (e.g. creaking sound, abnormal infrastructure)
+        elif "structural" in t or "abnormal" in t or "creak" in t or "sound" in t:
+            weights = {
+                "success_rate": 0.55,  # Extreme reliability prioritized
+                "feedback": 0.25,      # High resolution quality/satisfaction prioritized
+                "repair_time": 0.10,
+                "availability": 0.05,
+                "experience": 0.05,
+            }
+        # Case C: Standard default parameters
+        else:
+            weights = {
+                "success_rate": 0.40,
+                "repair_time": 0.25,
+                "feedback": 0.15,
+                "availability": 0.10,
+                "experience": 0.10,
+            }
 
-        final_score = (
+        deterministic_score = (
             success_score * weights["success_rate"]
             + repair_score * weights["repair_time"]
             + feedback_score * weights["feedback"]
             + availability_score * weights["availability"]
             + experience_score * weights["experience"]
         )
+
+        thompson_sample = _thompson_sample_success_rate(
+            total_jobs=jobs,
+            success_rate=float(c.success_rate or 0.5),
+        ) * 100.0
+
+        final_score = 0.60 * deterministic_score + 0.40 * thompson_sample
 
         # Historical evidence: fetch recent history rows
         evidence_q = select(ContractorHistory).where(ContractorHistory.contractor_id == c.id).order_by(ContractorHistory.created_at.desc()).limit(5)
@@ -200,6 +265,7 @@ async def rank_contractors(db: AsyncSession, incident_type: Optional[str] = None
                 "contractor_id": str(c.id),
                 "name": c.name,
                 "specializations": c.specializations,
+                "avg_response_time_hrs": float(c.avg_response_time_hrs or 0.0),
                 "final_score": round(final_score, 2),
                 "breakdown": {
                     "success_rate_score": round(success_score, 2),

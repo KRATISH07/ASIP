@@ -28,6 +28,11 @@ SENSOR_TYPE_MAP = {
 async def monitoring_agent(state: ASIPState) -> ASIPState:
     logger.info("MonitoringAgent: analysing sensor data", incident_id=state["incident_id"])
 
+    # Manual complaints are pre-populated with incident_event; bypass rules and route forward
+    if state.get("incident_event"):
+        logger.info("MonitoringAgent: manual complaint detected, routing to decider", incident_id=state["incident_id"])
+        return state
+
     sensor = state["sensor_data"]
     sensor_type = sensor.get("sensor_type", "")
     value = float(sensor.get("value", 0))

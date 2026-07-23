@@ -50,10 +50,34 @@ CONTRACTORS = [
         "contact_info": {"phone": "+91-9001234567", "email": "rapid@example.com", "address": "Sector 62, Noida"},
         "is_active": True,
     },
+    {
+        "name": "EcoPlumb Budget", "specializations": ["water", "plumbing"],
+        "rating": 4.0, "avg_response_time_hrs": 4.5, "success_rate": 0.88, "total_jobs": 62,
+        "contact_info": {"phone": "+91-9871112223", "email": "ecoplumb@example.com", "address": "Sector 22, Noida"},
+        "is_active": True,
+    },
+    {
+        "name": "VoltFlash Emergency", "specializations": ["electrical", "power"],
+        "rating": 4.7, "avg_response_time_hrs": 0.6, "success_rate": 0.96, "total_jobs": 158,
+        "contact_info": {"phone": "+91-9873334445", "email": "voltflash@example.com", "address": "Sector 34, Gurugram"},
+        "is_active": True,
+    },
+    {
+        "name": "SureBuild Civil", "specializations": ["civil"],
+        "rating": 4.9, "avg_response_time_hrs": 3.5, "success_rate": 0.99, "total_jobs": 94,
+        "contact_info": {"phone": "+91-9875556667", "email": "surebuild@example.com", "address": "Sector 45, Delhi"},
+        "is_active": True,
+    },
+    {
+        "name": "QuickTap Plumbing", "specializations": ["water", "plumbing"],
+        "rating": 4.5, "avg_response_time_hrs": 0.8, "success_rate": 0.94, "total_jobs": 120,
+        "contact_info": {"phone": "+91-9877778889", "email": "quicktap@example.com", "address": "Sector 50, Noida"},
+        "is_active": True,
+    },
 ]
 
 RESIDENT_NAMES = [
-    "Priya Sharma", "Rahul Gupta", "Anjali Singh", "Vikram Mehta",
+    "Kratish Mewada", "Rahul Gupta", "Anjali Singh", "Vikram Mehta",
     "Sunita Patel", "Arjun Nair", "Kavita Reddy", "Suresh Kumar",
     "Pooja Joshi", "Nikhil Verma",
 ]
@@ -62,15 +86,40 @@ RESIDENT_NAMES = [
 async def seed():
     print("🌱 Starting ASIP database seed...")
 
-    # Create tables
+    # 1. Ensure PostgreSQL schemas exist
+    from sqlalchemy import text
+    async with engine.begin() as conn:
+        await conn.execute(text('CREATE SCHEMA IF NOT EXISTS "public"'))
+        await conn.execute(text('CREATE SCHEMA IF NOT EXISTS "society_default"'))
+    print("✅ Schemas 'public' and 'society_default' verified/created")
+
+    # 2. Bind active tenant context to society_default so tables deploy to the correct search_path
+    from app.core.tenant_context import set_tenant_schema
+    set_tenant_schema("society_default")
+
+    # 3. Create tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("✅ Tables created")
+    print("✅ Tables created in designated schemas")
 
     async with AsyncSessionFactory() as db:
+        # Register default tenant
+        from app.db.models.tenant import Tenant
+        from sqlalchemy import select
+        existing_tenant = await db.execute(select(Tenant).where(Tenant.slug == "default"))
+        if not existing_tenant.scalar_one_or_none():
+            tenant = Tenant(
+                name="Greenfield Heights (Default)",
+                slug="default",
+                schema_name="society_default",
+                is_active=True
+            )
+            db.add(tenant)
+            await db.flush()
+            print("✅ Default tenant registered in public.tenants")
+
         # Admin user
         # Idempotent user creation
-        from sqlalchemy import select
         existing_admin = await db.execute(select(User).where(User.email == "admin@asip.ai"))
         if not existing_admin.scalar_one_or_none():
             admin = User(

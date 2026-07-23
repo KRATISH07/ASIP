@@ -1,15 +1,24 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Virtual Environment
 .venv/
 venv/
+ENV/
 
 # Environment Variables
 .env
+.env.local
+
+# Database & Vector Store
+chroma_data/
+*.db
+*.sqlite3
 
 # Logs
 *.log
@@ -17,20 +26,16 @@ venv/
 # macOS
 .DS_Store
 
-# Node
+# Node & Next.js
 node_modules/
-
-# Next.js
 .next/
+out/
 
-# Build
+# Build artifacts
 dist/
 build/
-
-# Coverage
-.coverage
-htmlcov/
 
 # IDE
 .vscode/
 .idea/
+*.swp

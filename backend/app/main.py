@@ -18,6 +18,8 @@ from app.api.predict import router as predict_router
 from app.api.decision import router as decision_router
 from app.api.feedback import router as feedback_router
 from app.api.analytics import router as analytics_router
+from app.api.sensor_buffer import router as sensor_buffer_router
+from app.api.complaints import router as complaints_router
 
 configure_logging()
 logger = get_logger("main")
@@ -30,8 +32,39 @@ async def lifespan(app: FastAPI):
         version=settings.app_version,
         environment=settings.environment,
     )
+    # Initialize LangGraph PostgreSQL checkpointer tables in non-testing environments
+    import sys
+    if settings.environment != "testing" and "pytest" not in sys.modules:
+        try:
+            from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+            conn_string = settings.database_url.replace("+asyncpg", "")
+            
+            # Enter the context manager manually so connection pool stays active across requests
+            context_manager = AsyncPostgresSaver.from_conn_string(conn_string)
+            saver = await context_manager.__aenter__()
+            await saver.setup()
+            
+            # Register checkpointer globally in graph module
+            from app.agents.graph import set_global_checkpointer
+            set_global_checkpointer(saver)
+            
+            app.state.checkpointer_context = context_manager
+            
+            logger.info("LangGraph PostgreSQL checkpointer tables initialized and registered successfully")
+        except Exception as e:
+            logger.error("Failed to initialize LangGraph PostgreSQL checkpointer tables", error=str(e))
     yield
+    
+    # Clean up checkpointer connections on shutdown
+    if hasattr(app.state, "checkpointer_context"):
+        logger.info("Closing LangGraph PostgreSQL checkpointer connections")
+        try:
+            await app.state.checkpointer_context.__aexit__(None, None, None)
+        except Exception as e:
+            logger.error("Failed to close checkpointer context manager", error=str(e))
+            
     logger.info("ASIP Backend shutting down")
+
 
 
 app = FastAPI(
@@ -55,6 +88,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from app.core.tenant_middleware import TenantMiddleware
+app.add_middleware(TenantMiddleware)
+
 
 
 # Global exception handler
@@ -86,6 +123,8 @@ app.include_router(predict_router)
 app.include_router(decision_router)
 app.include_router(feedback_router)
 app.include_router(analytics_router)
+app.include_router(sensor_buffer_router)
+app.include_router(complaints_router)
 
 
 @app.get("/health", tags=["Health"])

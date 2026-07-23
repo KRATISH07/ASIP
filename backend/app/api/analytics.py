@@ -13,9 +13,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_current_user
+from app.dependencies import require_roles
 from app.db.session import get_db
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
 from app.db.models.incident_memory import IncidentMemory
 from app.schemas.analytics import LearningAnalyticsResponse
 from app.services.learning_service import compute_aggregate_metrics
@@ -46,7 +46,7 @@ router = APIRouter(prefix="/analytics", tags=["Learning Analytics"])
 )
 async def get_learning_metrics(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = require_roles(UserRole.manager, UserRole.admin),
 ) -> LearningAnalyticsResponse:
     """Fetch all feedback records and compute aggregate learning metrics."""
 

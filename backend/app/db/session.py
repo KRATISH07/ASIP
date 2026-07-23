@@ -23,8 +23,9 @@ def get_engine() -> AsyncEngine:
             settings.database_url,
             echo=settings.is_development,
             pool_pre_ping=True,
-            pool_size=10,
-            max_overflow=20,
+            pool_size=2,
+            max_overflow=3,
+            pool_recycle=300,
         )
     return _engine
 
@@ -68,3 +69,21 @@ class _LazyEngine:
 # Expose compatibility names expected across the codebase and scripts.
 AsyncSessionFactory = _LazySessionFactory()
 engine = _LazyEngine()
+
+
+# ── Tenant Search Path Event Listener ───────────────────────────────────────
+from sqlalchemy import event
+from sqlalchemy.orm import Session
+from app.core.tenant_context import get_tenant_schema
+
+@event.listens_for(Session, "after_begin")
+def set_search_path_listener(session, transaction, connection):
+    """
+    Automatically scope every database session transaction to the active
+    tenant's schema path. Global tables remain resolvable under 'public'.
+    """
+    schema = get_tenant_schema()
+    if schema and schema != "public":
+        connection.exec_driver_sql(f'SET search_path TO "{schema}", public')
+
+

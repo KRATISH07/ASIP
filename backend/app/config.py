@@ -5,7 +5,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     google_api_key: str = Field(default="")
     gemini_model: str = Field(default="gemini-1.5-pro")
     embedding_model: str = Field(default="text-embedding-3-small")
+
+    # Hardware Acceleration (Apple Silicon M4 GPU / MPS / CUDA / CPU)
+    hardware_device: str = Field(default="auto")
 
     # Notifications
     sendgrid_api_key: str = Field(default="")

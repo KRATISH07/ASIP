@@ -37,7 +37,20 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    from sqlalchemy import text
+    schema_name = os.environ.get("ALEMBIC_SCHEMA", "public")
+    
+    if schema_name != "public":
+        # Create schema if not exists
+        connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema_name}"'))
+        # Set search path to tenant schema
+        connection.execute(text(f'SET search_path TO "{schema_name}"'))
+        
+    context.configure(
+        connection=connection, 
+        target_metadata=target_metadata,
+        version_table_schema=schema_name
+    )
     with context.begin_transaction():
         context.run_migrations()
 

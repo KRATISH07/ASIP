@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.dependencies import get_current_user
+from app.dependencies import require_roles
 from app.db.models.incident import Incident, IncidentStatus, IncidentSeverity
 from app.db.models.agent_log import AgentLog
 from app.db.models.tower import Tower
 from app.schemas.dashboard import DashboardOut, DashboardKPI, RecentIncidentSummary, AgentActivitySummary, AnalyticsOut
-from app.db.models.user import User
+from app.db.models.user import User, UserRole
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -16,14 +16,16 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 @router.get("/", response_model=DashboardOut, summary="Get dashboard summary")
 async def get_dashboard(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = require_roles(UserRole.manager, UserRole.admin),
 ):
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     # KPI counts
     total = (await db.execute(select(func.count(Incident.id)))).scalar_one()
+
     active = (await db.execute(
+
         select(func.count(Incident.id)).where(
             Incident.status.notin_([IncidentStatus.resolved])
         )
@@ -56,6 +58,7 @@ async def get_dashboard(
             status=row.Incident.status.value,
             tower_name=row.tower_name,
             detected_at=row.Incident.detected_at.isoformat(),
+            custom_type=row.Incident.sensor_data.get("custom_type") if (row.Incident.sensor_data and isinstance(row.Incident.sensor_data, dict)) else None,
         )
         for row in recent_rows
     ]
@@ -112,7 +115,7 @@ async def get_dashboard(
 @router.get("/analytics", response_model=AnalyticsOut, summary="Get analytics data for charts")
 async def get_analytics(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = require_roles(UserRole.manager, UserRole.admin),
 ):
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)

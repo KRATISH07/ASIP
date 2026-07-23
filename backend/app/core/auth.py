@@ -1,3 +1,8 @@
+# Workaround for passlib compat issue with bcrypt >= 4.0.0
+import bcrypt
+_orig_hashpw = bcrypt.hashpw
+bcrypt.hashpw = lambda p, s: _orig_hashpw(p[:72] if len(p) > 72 else p, s)
+
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
@@ -12,6 +17,7 @@ class TokenData(BaseModel):
     user_id: str
     email: str
     role: str
+    tenant_id: Optional[str] = None
 
 
 class TokenPair(BaseModel):
@@ -50,15 +56,23 @@ def decode_token(token: str) -> TokenData:
         user_id: str = payload.get("sub")
         email: str = payload.get("email")
         role: str = payload.get("role")
+        tenant_id: Optional[str] = payload.get("tenant_id")
         if not user_id or not email:
             raise ValueError("Invalid token payload")
-        return TokenData(user_id=user_id, email=email, role=role)
+        return TokenData(user_id=user_id, email=email, role=role, tenant_id=tenant_id)
     except JWTError as e:
         raise ValueError(f"Token decode failed: {e}")
 
 
-def create_token_pair(user_id: str, email: str, role: str) -> TokenPair:
+def create_token_pair(
+    user_id: str,
+    email: str,
+    role: str,
+    tenant_id: Optional[str] = None,
+) -> TokenPair:
     payload = {"sub": user_id, "email": email, "role": role}
+    if tenant_id:
+        payload["tenant_id"] = tenant_id
     return TokenPair(
         access_token=create_access_token(payload),
         refresh_token=create_refresh_token(payload),

@@ -56,3 +56,19 @@ class LearningAnalyticsResponse(BaseModel):
         ...,
         description="True when enough samples exist for correction to be active.",
     )
+    duration_mae: Optional[float] = Field(
+        default=None,
+        description="Rolling Mean Absolute Error for outage duration predictions."
+    )
+    cost_mae: Optional[float] = Field(
+        default=None,
+        description="Rolling Mean Absolute Error for cost predictions."
+    )
+    should_retrain: bool = Field(
+        default=False,
+        description="Flags if the model performance has degraded past acceptable thresholds."
+    )
+    retrain_reasons: list[str] = Field(
+        default_factory=list,
+        description="Descriptions of why retraining was triggered."
+    )

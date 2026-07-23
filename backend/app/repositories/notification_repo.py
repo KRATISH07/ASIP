@@ -10,6 +10,12 @@ class NotificationRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def get_by_id(self, notification_id: uuid.UUID) -> Optional[Notification]:
+        result = await self.db.execute(
+            select(Notification).where(Notification.id == notification_id)
+        )
+        return result.scalar_one_or_none()
+
     async def create_bulk(self, payloads: List[dict]) -> List[Notification]:
         notifications = [Notification(**p) for p in payloads]
         self.db.add_all(notifications)

@@ -59,20 +59,34 @@ async def communication_agent(state: ASIPState) -> ASIPState:
     impact = state.get("impact", {})
     contractor = state.get("contractor_recommendation", {})
 
-    llm = get_llm(temperature=0.3)
-    chain = NOTIFICATION_PROMPT | llm | JsonOutputParser()
+    llm = get_llm(task_type="notification", temperature=0.3)
+    from app.core.llm.fallback import invoke_with_fallback
+    from app.agents.schemas import NotificationListSchema
 
     try:
-        notifications = await chain.ainvoke({
-            "incident_type": incident_event.get("type", "Unknown"),
-            "severity": incident_event.get("severity", "Unknown"),
-            "description": incident_event.get("description", "N/A"),
-            "residents": impact.get("estimated_residents", 0),
-            "root_cause": diagnosis.get("probable_cause", "Under investigation"),
-            "recommended_action": diagnosis.get("recommended_action", "Pending"),
-            "contractor_name": contractor.get("contractor_name", "To be assigned"),
-            "estimated_time_hrs": contractor.get("estimated_time_hrs", "Unknown"),
-        })
+        response = await invoke_with_fallback(
+            prompt=NOTIFICATION_PROMPT,
+            input_data={
+                "incident_type": incident_event.get("type", "Unknown"),
+                "severity": incident_event.get("severity", "Unknown"),
+                "description": incident_event.get("description", "N/A"),
+                "residents": impact.get("estimated_residents", 0),
+                "root_cause": diagnosis.get("probable_cause", "Under investigation"),
+                "recommended_action": diagnosis.get("recommended_action", "Pending"),
+                "contractor_name": contractor.get("contractor_name", "To be assigned"),
+                "estimated_time_hrs": contractor.get("estimated_time_hrs", "Unknown"),
+            },
+            parser=JsonOutputParser(),
+            agent_type="communication",
+            primary_llm=llm,
+            response_model=NotificationListSchema,
+        )
+        if isinstance(response, dict) and "notifications" in response:
+            notifications = response["notifications"]
+        elif isinstance(response, list):
+            notifications = response
+        else:
+            notifications = [response]
         logger.info("Notifications generated", count=len(notifications))
     except Exception as e:
         logger.error("CommunicationAgent LLM call failed", error=str(e))

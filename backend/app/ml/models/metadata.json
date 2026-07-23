@@ -1,0 +1,16 @@
+{
+  "trained_at": "2026-06-15T13:40:04.309397",
+  "schema_hash": "983d27e7d69106ae51967ee556cdfdde91aff2f8f2e978e0ebe9570b148d199e",
+  "features": [
+    "severity_encoded",
+    "incident_type_encoded",
+    "affected_residents",
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend"
+  ],
+  "metrics": {
+    "duration_mae_hrs": 7.639572034362892,
+    "cost_mae_usd": 9476.914378154852
+  }
+}

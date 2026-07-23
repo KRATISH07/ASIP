@@ -30,6 +30,18 @@ class FeedbackRequest(BaseModel):
         description="Actual repair/contractor cost in INR (post-resolution)",
         examples=[12500.0],
     )
+    root_cause: Optional[str] = Field(
+        default=None,
+        description="Identified root cause of the issue",
+    )
+    resolution_summary: Optional[str] = Field(
+        default=None,
+        description="Summary of actions taken to resolve the issue",
+    )
+    contractor_used: Optional[str] = Field(
+        default=None,
+        description="Contractor used for resolving the issue",
+    )
 
 
 class FeedbackResponse(BaseModel):
@@ -64,6 +76,9 @@ async def submit_feedback(
             incident_uuid=str(incident_uuid),
             actual_outage_hrs=payload.actual_outage_hrs,
             actual_cost=payload.actual_cost,
+            root_cause=payload.root_cause,
+            resolution_summary=payload.resolution_summary,
+            contractor_used=payload.contractor_used,
         )
         return FeedbackResponse(**result)
     except ValueError as ve:

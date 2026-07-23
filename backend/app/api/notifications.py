@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional, List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.dependencies import get_current_user
@@ -49,3 +49,18 @@ async def send_notification(
     repo = NotificationRepository(db)
     await repo.mark_sent(notification_id)
     return {"message": "Notification marked as sent.", "id": str(notification_id)}
+
+
+@router.delete("/{notification_id}", status_code=200, summary="Delete a notification")
+async def delete_notification(
+    notification_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    repo = NotificationRepository(db)
+    notification = await repo.get_by_id(notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    await db.delete(notification)
+    await db.commit()
+    return {"message": "Notification deleted successfully"}

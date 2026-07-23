@@ -13,6 +13,12 @@ from app.core.logging import get_logger
 
 logger = get_logger("supervisor_agent")
 
+# Import the LLM judge here — imported lazily inside the agent to avoid
+# circular import issues at module load time.
+def _get_judge():
+    from app.evaluation.judge import evaluate_report
+    return evaluate_report
+
 SUPERVISOR_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """You are the Supervisor AI of an infrastructure operations centre.
 You receive outputs from multiple specialist agents and generate a comprehensive final decision report.
@@ -126,7 +132,7 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
         if not recommended_action:
             recommended_action = diagnosis_state.get("recommended_action", "Pending")
 
-    llm = get_llm(temperature=0.1)
+    llm = get_llm(task_type="supervisor", temperature=0.1)
     try:
         import importlib
         memory_service = importlib.import_module("app.services.memory_service")
@@ -166,7 +172,16 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
             "risk_score":          autonomous_decision.get("estimated_risk_score", 0.0),
         }
         try:
-            final_report: FinalReport = await invoke_chain(SUPERVISOR_PROMPT, llm, JsonOutputParser(), payload)
+            from app.core.llm.fallback import invoke_with_fallback
+            from app.agents.schemas import SupervisorReportSchema
+            final_report: FinalReport = await invoke_with_fallback(
+                prompt=SUPERVISOR_PROMPT,
+                input_data=payload,
+                parser=JsonOutputParser(),
+                agent_type="supervisor",
+                primary_llm=llm,
+                response_model=SupervisorReportSchema,
+            )
             logger.info("Final report generated", priority=final_report.get("priority"))
         except Exception:
             raise
@@ -216,48 +231,75 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
         "agent_outputs": list(agent_outputs.keys()),
     })
 
+    # ---------------------------------------------------------
+    # P10: LLM-as-judge — fire-and-forget background evaluation
+    # Does NOT block the main workflow. Any failure is logged only.
+    # ---------------------------------------------------------
+    _incident_id = str(state.get("incident_id", ""))
+    _incident_event = state.get("incident_event", {})
+    asyncio.create_task(
+        _get_judge()(
+            incident_data=_incident_event,
+            report=final_report,
+            incident_id=_incident_id,
+            persist=True,
+        )
+    )
+    logger.info(
+        "LLM-judge evaluation task scheduled",
+        incident_id=_incident_id,
+    )
+
     return {**state, "final_report": final_report, "supervisor_decisions": decisions, "next": "__end__"}
 
 
 async def supervisor_decider(state: ASIPState) -> ASIPState:
     """Decide which agents should run for the given incident.
 
-    This function inspects the `incident_event` and any explicit `request_type`
-    in `sensor_data` and populates `selected_agents`, `completed_agents`, and
-    `agent_outputs` placeholders. It sets `next` to the first selected agent
-    (or to the aggregator when no agents are required).
+    Fix #12: Routing is now driven by AGENT_ROUTING_TABLE in routing_config.py.
+    Adding a new incident type requires only a new entry in routing_config.py —
+    no changes to this file. This follows the Open/Closed Principle.
+
+    Previously: three hardcoded branches all selecting identical agent lists.
+    Now: config-driven resolution with per-type, per-severity specificity.
     """
-    logger.info("SupervisorAgent (decider): selecting agents", incident_id=state["incident_id"])
+    logger.info(
+        "SupervisorAgent (decider): selecting agents",
+        incident_id=state["incident_id"],
+        trace_id=state.get("trace_id"),
+    )
 
     incident_event = state.get("incident_event")
     if not incident_event:
-        # Nothing to do
         return {**state, "selected_agents": [], "completed_agents": [], "agent_outputs": {}, "supervisor_decisions": {}, "next": "__end__"}
 
-    selected: list = []
-    req = state.get("sensor_data", {}).get("request_type")
-    if req == "contractor_review":
-        # Contractor-only flow still benefits from a decision pass
-        selected = ["contractor_agent", "decision_agent"]
-    elif req == "communication_only":
-        selected = ["communication_agent"]
-    elif incident_event.get("severity") == "low":
-        # Minor incidents → notify + decision (no heavy infra analysis)
-        selected = ["communication_agent", "decision_agent"]
-    else:
-        itype = incident_event.get("type", "")
-        if "water" in itype or "tank" in itype:
-            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent", "decision_agent"]
-        elif "power" in itype:
-            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent", "decision_agent"]
-        else:
-            selected = ["infrastructure_agent", "impact_agent", "contractor_agent", "communication_agent", "decision_agent"]
+    incident_type = incident_event.get("type", "unknown")
+    severity      = incident_event.get("severity", "medium")
+    request_type  = state.get("sensor_data", {}).get("request_type")
 
-    # Initialize orchestration fields
-    base = {"selected_agents": selected, "completed_agents": [], "agent_outputs": {}, "supervisor_decisions": {}}
-    if selected:
-        base["next"] = selected[0]
-    else:
-        base["next"] = "supervisor_agent"
+    # Config-driven routing: resolve from AGENT_ROUTING_TABLE
+    from app.routing_config import resolve_agents
+    selected, routing_reason = resolve_agents(
+        incident_type=incident_type,
+        severity=severity,
+        request_type=request_type,
+    )
+
+    logger.info(
+        "Agent routing resolved",
+        incident_type=incident_type,
+        severity=severity,
+        agents_selected=selected,
+        routing_reason=routing_reason,
+        trace_id=state.get("trace_id"),
+    )
+
+    base = {
+        "selected_agents":    selected,
+        "completed_agents":   [],
+        "agent_outputs":      {},
+        "supervisor_decisions": {},
+    }
+    base["next"] = selected[0] if selected else "supervisor_agent"
 
     return {**state, **base}

@@ -1,0 +1,16 @@
+curl -X POST http://127.0.0.1:8000/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email": "admin@asip.ai", "password": "admin123"}'
+
+
+
+curl -X POST http://127.0.0.1:8000/incidents/sensor-data \
+     -H "Authorization: Bearer <ACCESS_TOKEN>" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "tower_id": "<TOWER_ID>",
+       "sensor_type": "water_pressure",
+       "value": 0.2,
+       "unit": "bar",
+       "timestamp": "2026-07-09T15:00:00Z"
+     }'

@@ -51,3 +51,7 @@ class ContractorAssignment(Base):
     # Relationships
     incident: Mapped["Incident"] = relationship("Incident", back_populates="contractor_assignment")
     contractor: Mapped["Contractor"] = relationship("Contractor", back_populates="assignments")
+
+    @property
+    def contractor_name(self) -> str:
+        return self.contractor.name if self.contractor else "Unknown"

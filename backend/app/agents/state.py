@@ -1,7 +1,14 @@
 """
 ASIPState: the shared typed state passed between all LangGraph nodes.
 Every agent reads from and writes to this state dict.
-This file was extended to support supervisor orchestration state fields.
+
+Engineering notes:
+- trace_id (Fix #5): Correlation ID injected at HTTP layer via request_context.
+  Propagates through all agent logs for distributed tracing without
+  modifying any agent function signature.
+- _schema_version (Fix #9): Records the state schema version at creation time.
+  During rolling deployments, old and new workers may process the same state.
+  Version tag enables forward-migration in _migrate_state() without crashes.
 """
 from typing import TypedDict, Optional, List, Any, Dict
 
@@ -93,3 +100,16 @@ class ASIPState(TypedDict):
 
     # V4 Autonomous Decision Engine
     autonomous_decision: Optional[Dict[str, Any]]
+
+    # Fix #5: Correlation ID — propagated from HTTP request via contextvars.
+    # Set by workflow_service at pipeline start. Appears in all structured logs.
+    # Allows correlating a single HTTP request to all agent/LLM/DB operations.
+    trace_id: Optional[str]
+
+    # Fix #9: State schema version — rolling deployment safety.
+    # When ASIPState structure changes, bump the version in workflow_service.
+    # Agents can use this to conditionally handle older state shapes.
+    _schema_version: Optional[str]
+
+    # Stack to collect agent execution logs during node traversal to be persisted in DB at workflow end
+    agent_logs_to_persist: Optional[List[Dict[str, Any]]]

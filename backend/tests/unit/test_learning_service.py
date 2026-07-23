@@ -242,3 +242,50 @@ def test_accuracy_from_zero_error():
 
 def test_accuracy_from_full_error():
     assert _accuracy_from_error(1.5) == 0.0  # clamped at 0
+
+
+# ---------------------------------------------------------------------------
+# Tests for Model Retraining Triggers
+# ---------------------------------------------------------------------------
+
+def test_evaluate_model_performance_no_retrain():
+    """Verify that should_retrain is False when MAE is under thresholds."""
+    from app.services.learning_service import evaluate_model_performance
+    records = [
+        _make_record(predicted_outage=5.0, actual_outage=4.0, predicted_cost=2000, actual_cost=1800),
+        _make_record(predicted_outage=8.0, actual_outage=8.5, predicted_cost=5000, actual_cost=5300),
+    ]
+    res = evaluate_model_performance(records)
+    assert res["should_retrain"] is False
+    assert res["duration_mae"] == pytest.approx(0.75, abs=0.01)
+    assert res["cost_mae"] == pytest.approx(250.0, abs=0.01)
+    assert len(res["reasons"]) == 0
+
+
+def test_evaluate_model_performance_duration_triggers_retrain():
+    """Verify that should_retrain triggers True when rolling duration MAE exceeds 12 hours."""
+    from app.services.learning_service import evaluate_model_performance
+    # 15 hours MAE (threshold is 12.0)
+    records = [
+        _make_record(predicted_outage=20.0, actual_outage=5.0, predicted_cost=1000, actual_cost=1000),
+        _make_record(predicted_outage=25.0, actual_outage=10.0, predicted_cost=2000, actual_cost=2000),
+    ]
+    res = evaluate_model_performance(records)
+    assert res["should_retrain"] is True
+    assert any("Duration MAE" in r for r in res["reasons"])
+    assert res["duration_mae"] == 15.0
+
+
+def test_evaluate_model_performance_cost_triggers_retrain():
+    """Verify that should_retrain triggers True when rolling cost MAE exceeds $15,000."""
+    from app.services.learning_service import evaluate_model_performance
+    # $20,000 MAE (threshold is 15000.0)
+    records = [
+        _make_record(predicted_outage=1.0, actual_outage=1.0, predicted_cost=30000.0, actual_cost=10000.0),
+        _make_record(predicted_outage=2.0, actual_outage=2.0, predicted_cost=40000.0, actual_cost=20000.0),
+    ]
+    res = evaluate_model_performance(records)
+    assert res["should_retrain"] is True
+    assert any("Cost MAE" in r for r in res["reasons"])
+    assert res["cost_mae"] == 20000.0
+
