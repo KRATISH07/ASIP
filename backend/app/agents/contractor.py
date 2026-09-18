@@ -9,8 +9,8 @@ from app.agents.llm import get_llm
 from app.core.llm.chain import invoke_chain
 from app.core.logging import get_logger
 from app.services import contractor_service
+import app.services.memory_service as _memory_service
 from app.db.session import AsyncSessionFactory
-import importlib
 
 logger = get_logger("contractor_agent")
 
@@ -55,12 +55,10 @@ async def contractor_agent(state: ASIPState) -> ASIPState:
 
     # Retrieve similar incidents from memory (if available)
     try:
-        memory_service = importlib.import_module("app.services.memory_service")
-        # ensure we pass a dict to the memory service
         mem_query = {"incident_type": incident_type}
         if isinstance(impact, dict):
             mem_query.update(impact)
-        history = await memory_service.retrieve_similar_incidents(mem_query, k=5)
+        history = await _memory_service.retrieve_similar_incidents(mem_query, k=5)
         history = history or []
     except Exception:
         history = []

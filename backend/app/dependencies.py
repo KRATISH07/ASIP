@@ -76,19 +76,6 @@ def require_roles(*roles: UserRole):
         return current_user
     return Depends(_check)
 
-
-def require_tenant_scope():
-    """
-    Ensures the request is scoped to a valid tenant context.
-    Tenant isolation is enforced at the DB layer via TenantMiddleware (search_path).
-    This dependency validates the user is authenticated — combine with require_roles
-    for full protection.
-    """
-    async def _check(current_user: User = Depends(get_current_user)) -> User:
-        return current_user
-    return Depends(_check)
-
-
 # ---------------------------------------------------------------------------
 # Backward-compatible role shortcuts (preserve all existing route code)
 # ---------------------------------------------------------------------------

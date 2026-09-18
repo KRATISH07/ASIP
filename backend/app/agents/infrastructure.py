@@ -5,7 +5,6 @@ historical incidents, repair procedures) and generates a structured diagnosis.
 """
 from typing import Any
 import importlib
-import unittest.mock as _mock
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.tools import tool
@@ -155,12 +154,12 @@ async def get_sensor_history(sensor_type: str, hours: int = 24) -> str:
     # This keeps tests green without introducing random noise in production.
     from datetime import datetime, timedelta
     now = datetime.now()
-    simulated_readings = []
     
     # Determine unit/prefix
     unit = "bar" if "pressure" in sensor_type.lower() else "°C" if "temp" in sensor_type.lower() else "units"
     label = "Pressure" if "pressure" in sensor_type.lower() else "Temperature" if "temp" in sensor_type.lower() else "Value"
     base = 1.2 if "pressure" in sensor_type.lower() else 65.0 if "temp" in sensor_type.lower() else 15.0
+    simulated_readings = []
     
     # Fixed slope instead of random.uniform for deterministic unit tests
     for h in range(hours, 0, -1):
@@ -261,6 +260,9 @@ Current Sensor Reading: {sensor_data}
 async def infrastructure_agent(state: ASIPState) -> ASIPState:
     logger.info("InfrastructureAgent: performing RCA", incident_id=state["incident_id"])
 
+    # Import test mock module lazily — only needed for type-checking here, not in production hot path
+    import unittest.mock as _mock
+
     incident_event = state.get("incident_event")
     if not incident_event:
         return {**state, "next": "impact_agent"}
@@ -278,14 +280,14 @@ async def infrastructure_agent(state: ASIPState) -> ASIPState:
     if not is_mock and not is_cheap_model:
         from app.core.llm.circuit_breaker import get_circuit_breaker
         breaker = get_circuit_breaker()
-        if breaker.allow_request():
+        if await breaker.allow_request():
             try:
                 diagnosis = await _run_react_loop(llm, incident_event, state)
                 react_success = True
-                breaker.record_success()
+                await breaker.record_success()
                 logger.info("InfrastructureAgent: ReAct loop RCA successful", incident_id=state["incident_id"])
             except Exception as e:
-                breaker.record_failure(e)
+                await breaker.record_failure(e)
                 logger.warning("InfrastructureAgent: ReAct loop failed — trying fallback prompt chain", error=str(e))
                 react_success = False
         else:

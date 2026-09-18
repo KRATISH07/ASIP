@@ -150,6 +150,9 @@ async def rank_contractors(db: AsyncSession, incident_type: Optional[str] = None
       - Resident Feedback: 15%
       - Availability: 10%
       - Experience (jobs completed): 10%
+
+    Performance: uses two batched queries (aggregate GROUP BY + evidence IN-clause)
+    instead of 2 queries per contractor, reducing DB calls from O(2N) to O(2).
     """
     repo = ContractorRepository(db)
     specialty = _specialty_for_incident(incident_type)
@@ -158,8 +161,54 @@ async def rank_contractors(db: AsyncSession, incident_type: Optional[str] = None
     if not contractors:
         return []
 
-    # Gather baseline stats for normalization
-    success_rates = [max(0.0, float(c.success_rate or 0.0)) for c in contractors]
+    contractor_ids = [c.id for c in contractors]
+
+    # ── Batch query 1: aggregate history stats per contractor ──────────────────
+    agg_q = (
+        select(
+            ContractorHistory.contractor_id,
+            func.avg(ContractorHistory.repair_duration_hours).label("avg_duration"),
+            func.avg(ContractorHistory.repair_cost).label("avg_cost"),
+            func.avg(ContractorHistory.resident_feedback_score).label("avg_feedback"),
+            func.count(ContractorHistory.id).label("hist_count"),
+        )
+        .where(ContractorHistory.contractor_id.in_(contractor_ids))
+        .group_by(ContractorHistory.contractor_id)
+    )
+    agg_result = await db.execute(agg_q)
+    # keyed by contractor_id
+    agg_map: Dict = {
+        str(row.contractor_id): row
+        for row in agg_result.all()
+    }
+
+    # ── Batch query 2: fetch recent evidence rows (last 5 per contractor) ──────
+    # Use a window function (ROW_NUMBER) to limit to 5 rows per contractor_id.
+    from sqlalchemy import func as sqlfunc, over
+    rn_col = sqlfunc.row_number().over(
+        partition_by=ContractorHistory.contractor_id,
+        order_by=ContractorHistory.created_at.desc(),
+    ).label("rn")
+    sub = (
+        select(ContractorHistory, rn_col)
+        .where(ContractorHistory.contractor_id.in_(contractor_ids))
+        .subquery()
+    )
+    evidence_q = select(sub).where(sub.c.rn <= 5)
+    evidence_result = await db.execute(evidence_q)
+    evidence_map: Dict[str, List[Dict]] = {}
+    for row in evidence_result.mappings().all():
+        cid = str(row["contractor_id"])
+        evidence_map.setdefault(cid, []).append({
+            "incident_type": row.get("incident_type"),
+            "repair_duration_hours": float(row["repair_duration_hours"]) if row.get("repair_duration_hours") is not None else None,
+            "repair_cost": float(row["repair_cost"]) if row.get("repair_cost") is not None else None,
+            "resolution_success": bool(row["resolution_success"]) if row.get("resolution_success") is not None else None,
+            "resident_feedback_score": float(row["resident_feedback_score"]) if row.get("resident_feedback_score") is not None else None,
+            "created_at": row["created_at"].isoformat() if row.get("created_at") else None,
+        })
+
+    # ── Normalize across all contractors ──────────────────────────────────────
     repair_times = [float(c.avg_response_time_hrs or 0.0) for c in contractors]
     experiences = [int(c.total_jobs or 0) for c in contractors]
 
@@ -169,65 +218,30 @@ async def rank_contractors(db: AsyncSession, incident_type: Optional[str] = None
     results: List[Dict[str, Any]] = []
 
     for c in contractors:
-        # Historical aggregates from contractor_history
-        q = select(func.avg(ContractorHistory.repair_duration_hours), func.avg(ContractorHistory.repair_cost), func.avg(ContractorHistory.resident_feedback_score), func.count(ContractorHistory.id)).where(ContractorHistory.contractor_id == c.id)
-        r = await db.execute(q)
-        avg_repair_duration, avg_cost, avg_feedback, hist_count = r.one()
+        cid = str(c.id)
+        agg = agg_map.get(cid)
+        avg_feedback = float(agg.avg_feedback) if agg and agg.avg_feedback else None
+        historical = evidence_map.get(cid, [])
 
         # Normalize components
-        success_score = float(c.success_rate or 0.0) * 100.0  # 0-100
+        success_score = float(c.success_rate or 0.0) * 100.0
 
-        # Repair time: lower is better
-        rt = float(c.avg_response_time_hrs or (avg_repair_duration or 0.0))
-        if max_rt - min_rt > 0:
-            repair_score = 100.0 * (max_rt - rt) / (max_rt - min_rt)
-        else:
-            repair_score = 100.0
+        rt = float(c.avg_response_time_hrs or (agg.avg_duration if agg and agg.avg_duration else 0.0))
+        repair_score = 100.0 * (max_rt - rt) / (max_rt - min_rt) if max_rt - min_rt > 0 else 100.0
 
-        # Resident feedback: prefer historical feedback average, else map contractor rating (1-5) => 0-100
-        if avg_feedback:
-            feedback_score = float(avg_feedback) * 20.0
-        else:
-            feedback_score = float(c.rating or 3.0) * 20.0
-
+        feedback_score = (avg_feedback * 20.0) if avg_feedback else float(c.rating or 3.0) * 20.0
         availability_score = 100.0 if bool(c.is_active) else 0.0
 
-        # Experience: normalize total_jobs
         jobs = int(c.total_jobs or 0)
-        if max_exp - min_exp > 0:
-            experience_score = 100.0 * (jobs - min_exp) / (max_exp - min_exp)
-        else:
-            experience_score = 50.0
+        experience_score = 100.0 * (jobs - min_exp) / (max_exp - min_exp) if max_exp - min_exp > 0 else 50.0
 
-        # Dynamic situation-based weights matching severity and emergency context
         t = (incident_type or "").lower()
-        # Case A: Emergency situations where speed is critical (e.g. water shortage, power outage)
         if "shortage" in t or "pressure" in t or "outage" in t:
-            weights = {
-                "success_rate": 0.25,
-                "repair_time": 0.55,  # Speed prioritized
-                "feedback": 0.10,
-                "availability": 0.05,
-                "experience": 0.05,
-            }
-        # Case B: Hazard / Safety / Structural issues (e.g. creaking sound, abnormal infrastructure)
+            weights = {"success_rate": 0.25, "repair_time": 0.55, "feedback": 0.10, "availability": 0.05, "experience": 0.05}
         elif "structural" in t or "abnormal" in t or "creak" in t or "sound" in t:
-            weights = {
-                "success_rate": 0.55,  # Extreme reliability prioritized
-                "feedback": 0.25,      # High resolution quality/satisfaction prioritized
-                "repair_time": 0.10,
-                "availability": 0.05,
-                "experience": 0.05,
-            }
-        # Case C: Standard default parameters
+            weights = {"success_rate": 0.55, "feedback": 0.25, "repair_time": 0.10, "availability": 0.05, "experience": 0.05}
         else:
-            weights = {
-                "success_rate": 0.40,
-                "repair_time": 0.25,
-                "feedback": 0.15,
-                "availability": 0.10,
-                "experience": 0.10,
-            }
+            weights = {"success_rate": 0.40, "repair_time": 0.25, "feedback": 0.15, "availability": 0.10, "experience": 0.10}
 
         deterministic_score = (
             success_score * weights["success_rate"]
@@ -244,40 +258,21 @@ async def rank_contractors(db: AsyncSession, incident_type: Optional[str] = None
 
         final_score = 0.60 * deterministic_score + 0.40 * thompson_sample
 
-        # Historical evidence: fetch recent history rows
-        evidence_q = select(ContractorHistory).where(ContractorHistory.contractor_id == c.id).order_by(ContractorHistory.created_at.desc()).limit(5)
-        evidence_res = await db.execute(evidence_q)
-        evidence_rows = evidence_res.scalars().all()
-        historical = [
-            {
-                "incident_type": h.incident_type,
-                "repair_duration_hours": float(h.repair_duration_hours) if h.repair_duration_hours is not None else None,
-                "repair_cost": float(h.repair_cost) if h.repair_cost is not None else None,
-                "resolution_success": bool(h.resolution_success) if h.resolution_success is not None else None,
-                "resident_feedback_score": float(h.resident_feedback_score) if h.resident_feedback_score is not None else None,
-                "created_at": h.created_at.isoformat() if isinstance(h.created_at, datetime) else None,
-            }
-            for h in evidence_rows
-        ]
+        results.append({
+            "contractor_id": cid,
+            "name": c.name,
+            "specializations": c.specializations,
+            "avg_response_time_hrs": float(c.avg_response_time_hrs or 0.0),
+            "final_score": round(final_score, 2),
+            "breakdown": {
+                "success_rate_score": round(success_score, 2),
+                "repair_time_score": round(repair_score, 2),
+                "feedback_score": round(feedback_score, 2),
+                "availability_score": round(availability_score, 2),
+                "experience_score": round(experience_score, 2),
+            },
+            "historical_evidence": historical,
+        })
 
-        results.append(
-            {
-                "contractor_id": str(c.id),
-                "name": c.name,
-                "specializations": c.specializations,
-                "avg_response_time_hrs": float(c.avg_response_time_hrs or 0.0),
-                "final_score": round(final_score, 2),
-                "breakdown": {
-                    "success_rate_score": round(success_score, 2),
-                    "repair_time_score": round(repair_score, 2),
-                    "feedback_score": round(feedback_score, 2),
-                    "availability_score": round(availability_score, 2),
-                    "experience_score": round(experience_score, 2),
-                },
-                "historical_evidence": historical,
-            }
-        )
-
-    # Sort by final_score desc
     results.sort(key=lambda x: x["final_score"], reverse=True)
     return results[:k]

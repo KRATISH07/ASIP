@@ -41,14 +41,10 @@ async def upload_events(events: list[dict], db: AsyncSession) -> dict:
     now = datetime.now(timezone.utc)
     repo = SensorBufferRepository(db)
 
-    enriched = []
-    for e in events:
-        enriched.append({
-            **e,
-            "received_at": now,
-            "sync_status": "pending",
-            "retry_count": 0,
-        })
+    enriched = [
+        {**e, "received_at": now, "sync_status": "pending", "retry_count": 0}
+        for e in events
+    ]
 
     inserted, duplicates = await repo.create_batch(enriched)
     failed_insert = len(events) - inserted - duplicates

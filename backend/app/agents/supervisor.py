@@ -13,6 +13,9 @@ from app.core.logging import get_logger
 
 logger = get_logger("supervisor_agent")
 
+# Import lazily-resolvable modules at module level to avoid per-call overhead.
+import app.services.memory_service as _memory_service
+
 # Import the LLM judge here — imported lazily inside the agent to avoid
 # circular import issues at module load time.
 def _get_judge():
@@ -134,9 +137,7 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
 
     llm = get_llm(task_type="supervisor", temperature=0.1)
     try:
-        import importlib
-        memory_service = importlib.import_module("app.services.memory_service")
-        hist = await memory_service.retrieve_similar_incidents({"incident_type": incident_event.get("type")}, k=3) or []
+        hist = await _memory_service.retrieve_similar_incidents({"incident_type": incident_event.get("type")}, k=3) or []
 
         # Impact prediction fields (from V3)
         impact_prediction = (state.get("impact") or {}).get("impact_prediction") or {}
@@ -183,8 +184,6 @@ async def supervisor_agent(state: ASIPState) -> ASIPState:
                 response_model=SupervisorReportSchema,
             )
             logger.info("Final report generated", priority=final_report.get("priority"))
-        except Exception:
-            raise
     except Exception as e:
         logger.error("SupervisorAgent LLM call failed", error=str(e))
         final_report = {

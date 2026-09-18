@@ -40,6 +40,21 @@ from app.core.logging import get_logger
 
 logger = get_logger("llm_fallback")
 
+# Module-level singleton for the instructor-wrapped AsyncOpenAI client.
+# Created lazily on first use so the OpenAI key is only required when
+# instructor-mode is actually triggered, not at server startup.
+_instructor_client: Any = None
+
+
+def _get_instructor_client(api_key: str) -> Any:
+    """Return the shared instructor-wrapped AsyncOpenAI client, creating it once."""
+    global _instructor_client
+    if _instructor_client is None:
+        import instructor
+        from openai import AsyncOpenAI
+        _instructor_client = instructor.from_openai(AsyncOpenAI(api_key=api_key))
+    return _instructor_client
+
 
 # ── Rule-based fallback responses by agent type ──────────────────────────────
 # These are minimal valid responses that allow the pipeline to complete
@@ -136,7 +151,7 @@ async def invoke_with_fallback(
     if not is_mock:
         from app.core.llm.circuit_breaker import get_circuit_breaker
         breaker = get_circuit_breaker()
-        if not breaker.allow_request():
+        if not await breaker.allow_request():
             logger.warning(
                 "Circuit breaker is OPEN — bypassing LLM attempts and using rule-based fallback immediately",
                 agent_type=agent_type
@@ -189,7 +204,7 @@ async def invoke_with_fallback(
                 model_name = getattr(llm, "model_name", "") or getattr(llm, "model", "") or settings.llm_model
                 temp = getattr(llm, "temperature", 0.1)
 
-                client = instructor.from_openai(AsyncOpenAI(api_key=settings.openai_api_key))
+                client = _get_instructor_client(settings.openai_api_key)
                 response_pydantic = await client.chat.completions.create(
                     model=model_name,
                     response_model=response_model,
@@ -202,7 +217,7 @@ async def invoke_with_fallback(
                 result = await invoke_chain(prompt, llm, parser, input_data)
 
             if not is_mock:
-                breaker.record_success()
+                await breaker.record_success()
 
             if label != "primary":
                 logger.warning(
@@ -213,7 +228,7 @@ async def invoke_with_fallback(
             return result
         except Exception as exc:
             if not is_mock:
-                breaker.record_failure(exc)
+                await breaker.record_failure(exc)
             last_error = exc
             logger.warning(
                 "LLM call failed — trying next level",

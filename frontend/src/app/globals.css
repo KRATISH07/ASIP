@@ -47,8 +47,11 @@ body {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1rem;
-  backdrop-filter: blur(12px);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* Apply backdrop blur only where the GPU can support it efficiently */
+@supports (backdrop-filter: blur(1px)) {
+  .glass-card { backdrop-filter: blur(8px); }
 }
 .glass-card:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -60,16 +63,21 @@ body {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 1rem;
-  backdrop-filter: blur(12px);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
-.glass-card-clickable:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(167, 139, 250, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px -8px rgba(139, 92, 246, 0.15);
+@supports (backdrop-filter: blur(1px)) {
+  .glass-card-clickable { backdrop-filter: blur(8px); }
 }
+@media (prefers-reduced-motion: no-preference) {
+  .glass-card-clickable:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(167, 139, 250, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px -8px rgba(139, 92, 246, 0.15);
+  }
+}
+
 
 /* Colored accent cards */
 .kpi-violet { border-left: 3px solid #8b5cf6; }

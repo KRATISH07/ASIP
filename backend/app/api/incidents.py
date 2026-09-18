@@ -73,7 +73,6 @@ async def ingest_sensor_data(
             response = {"message": "Sensor reading processed. No incident detected."}
     else:
         # Production async path: generate incident_id upfront and queue workflow execution
-        import uuid
         incident_id = str(uuid.uuid4())
         background_tasks.add_task(
             _run_workflow_background,

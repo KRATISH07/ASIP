@@ -161,7 +161,7 @@ class WorkflowService:
         event = final_state["incident_event"]
         raw_report = final_state.get("final_report") or {}
         versioned_decision = {
-            "_asip_schema_version": "v5.1",
+            "_asip_schema_version": _STATE_SCHEMA_VERSION,
             "_generated_at": datetime.now(timezone.utc).isoformat(),
             **raw_report,
         }
@@ -366,7 +366,7 @@ class WorkflowService:
         event = final_state["incident_event"]
         raw_report = final_state.get("final_report") or {}
         versioned_decision = {
-            "_asip_schema_version": "v5.1",
+            "_asip_schema_version": _STATE_SCHEMA_VERSION,
             "_generated_at": datetime.now(timezone.utc).isoformat(),
             **raw_report,
         }

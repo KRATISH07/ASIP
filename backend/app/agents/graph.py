@@ -150,8 +150,7 @@ def build_graph(checkpointer=None):
             new_state["agent_outputs"] = outputs
 
             # Collect log entry in the state to be persisted later at the end of the workflow
-            logs_to_persist = new_state.get("agent_logs_to_persist", []) or []
-            logs_to_persist = list(logs_to_persist)  # clone list to be safe
+            logs_to_persist = list(new_state.get("agent_logs_to_persist", []) or [])
             logs_to_persist.append({
                 "agent_name": agent_key,
                 "input_payload": {
@@ -255,7 +254,9 @@ def get_compiled_graph():
         _compiled_graph = build_graph(checkpointer=MemorySaver())
         return _compiled_graph
 
-    # Fallback memory checkpointer if called outside lifespan context (e.g. from scripts)
+    # Fallback memory checkpointer if called outside lifespan context (e.g. from scripts).
+    # Cache the result in _compiled_graph so this path is also O(1) on subsequent calls.
     from langgraph.checkpoint.memory import MemorySaver
-    return build_graph(checkpointer=MemorySaver())
+    _compiled_graph = build_graph(checkpointer=MemorySaver())
+    return _compiled_graph
 

@@ -72,8 +72,9 @@ engine = _LazyEngine()
 
 
 # ── Tenant Search Path Event Listener ───────────────────────────────────────
-from sqlalchemy import event
+from sqlalchemy import event, text
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import quoted_name
 from app.core.tenant_context import get_tenant_schema
 
 @event.listens_for(Session, "after_begin")
@@ -81,9 +82,16 @@ def set_search_path_listener(session, transaction, connection):
     """
     Automatically scope every database session transaction to the active
     tenant's schema path. Global tables remain resolvable under 'public'.
+
+    Security: schema name is quoted via SQLAlchemy's quoted_name to prevent
+    SQL injection — even though the value originates from our own DB, we
+    apply defence-in-depth here.
     """
     schema = get_tenant_schema()
     if schema and schema != "public":
-        connection.exec_driver_sql(f'SET search_path TO "{schema}", public')
+        # quoted_name wraps the identifier in double-quotes and escapes any
+        # embedded double-quotes, making injection impossible.
+        safe_schema = str(quoted_name(schema, quote=True))
+        connection.exec_driver_sql(f"SET search_path TO {safe_schema}, public")
 
 

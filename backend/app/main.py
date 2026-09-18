@@ -1,7 +1,8 @@
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.core.logging import configure_logging, get_logger
@@ -33,7 +34,6 @@ async def lifespan(app: FastAPI):
         environment=settings.environment,
     )
     # Initialize LangGraph PostgreSQL checkpointer tables in non-testing environments
-    import sys
     if settings.environment != "testing" and "pytest" not in sys.modules:
         try:
             from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -65,8 +65,6 @@ async def lifespan(app: FastAPI):
             
     logger.info("ASIP Backend shutting down")
 
-
-
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -91,7 +89,6 @@ app.add_middleware(
 
 from app.core.tenant_middleware import TenantMiddleware
 app.add_middleware(TenantMiddleware)
-
 
 
 # Global exception handler

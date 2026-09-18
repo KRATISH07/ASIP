@@ -7,6 +7,7 @@ from real outcomes.
 IMPORTANT: memory_service.py is protected and must NOT be modified.
 This service handles the feedback write path independently.
 """
+import asyncio
 import uuid
 from typing import Optional
 from app.core.logging import get_logger
@@ -142,7 +143,6 @@ async def store_feedback(
             )
 
     # Trigger model retraining asynchronously in the background if performance has degraded
-    import asyncio
     asyncio.create_task(_trigger_model_retrain_if_needed())
 
     logger.info(
@@ -196,14 +196,15 @@ async def _trigger_model_retrain_if_needed() -> None:
         if not memories:
             return
 
-        feedback_records = []
-        for m in memories:
-            feedback_records.append({
+        feedback_records = [
+            {
                 "predicted_outage_hrs": m.predicted_outage_hrs,
                 "actual_outage_hrs": m.actual_outage_hrs,
                 "predicted_cost": m.predicted_cost,
                 "actual_cost": m.actual_cost,
-            })
+            }
+            for m in memories
+        ]
 
         from app.services.learning_service import evaluate_model_performance
         perf = evaluate_model_performance(feedback_records)

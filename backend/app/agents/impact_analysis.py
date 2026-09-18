@@ -81,8 +81,12 @@ async def impact_analysis_agent(state: ASIPState) -> ASIPState:
             from app.db.session import AsyncSessionFactory
             from app.db.models.incident_memory import IncidentMemory
             from sqlalchemy import select
+            import uuid as _uuid
 
+            # Use a single session for both the correction query and the predicted-values write.
+            uuid_obj = _uuid.UUID(str(state.get("incident_id"))) if state.get("incident_id") else None
             async with AsyncSessionFactory() as db:
+                # 1. Fetch feedback records for learning correction
                 stmt = (
                     select(
                         IncidentMemory.predicted_outage_hrs,
@@ -98,19 +102,32 @@ async def impact_analysis_agent(state: ASIPState) -> ASIPState:
                 result = await db.execute(stmt)
                 rows = result.mappings().all()
 
-            feedback_records = [dict(r) for r in rows]
-            correction_factors = compute_correction_factors(feedback_records)
-            logger.info(
-                "Learning correction factors fetched",
-                incident_type=incident_type,
-                samples=correction_factors["outage_sample_count"],
-                correction_applied=correction_factors["correction_applied"],
-            )
+                feedback_records = [dict(r) for r in rows]
+                correction_factors = compute_correction_factors(feedback_records)
+                logger.info(
+                    "Learning correction factors fetched",
+                    incident_type=incident_type,
+                    samples=correction_factors["outage_sample_count"],
+                    correction_applied=correction_factors["correction_applied"],
+                )
+
+                # 2. Write predicted values to incident_memory (will be committed below).
+                # Stored here to allow feedback_service to compute error = actual - predicted.
+                if uuid_obj:
+                    mem_stmt = select(IncidentMemory).where(
+                        IncidentMemory.incident_uuid == uuid_obj
+                    ).limit(1)
+                    mem_result = await db.execute(mem_stmt)
+                    _pending_mem_write = (db, mem_result.scalar_one_or_none())
+                else:
+                    _pending_mem_write = (db, None)
+
         except Exception as learn_err:
             logger.warning(
                 "Learning service unavailable; using uncorrected prediction",
                 error=str(learn_err),
             )
+            _pending_mem_write = (None, None)
 
         preds = await predict_impact(
             incident_event or {},
@@ -127,35 +144,20 @@ async def impact_analysis_agent(state: ASIPState) -> ASIPState:
             impact["predicted_outage_hrs"] = float(preds.get("predicted_outage_hrs"))
         impact["prediction_confidence"] = float(preds.get("confidence_score", 0.0))
 
-        # V5: Write predicted values to incident_memory NOW (before feedback arrives)
-        # so feedback_service can later compute error = actual - predicted.
-        incident_uuid_str = state.get("incident_id")
-        if incident_uuid_str:
+        # V5: Write predicted values to incident_memory using the session already opened above.
+        db_session, mem_obj = _pending_mem_write if '_pending_mem_write' in dir() else (None, None)
+        if db_session and mem_obj:
             try:
-                import uuid as _uuid
-                from app.db.session import AsyncSessionFactory
-                from app.db.models.incident_memory import IncidentMemory
-                from sqlalchemy import select
-
-                uuid_obj = _uuid.UUID(str(incident_uuid_str))
-                async with AsyncSessionFactory() as db:
-                    stmt = select(IncidentMemory).where(
-                        IncidentMemory.incident_uuid == uuid_obj
-                    ).limit(1)
-                    result = await db.execute(stmt)
-                    mem = result.scalar_one_or_none()
-                    if mem:
-                        mem.predicted_outage_hrs = preds.get("predicted_outage_hrs")
-                        mem.predicted_cost = preds.get("estimated_repair_cost")
-                        await db.commit()
-                        logger.info(
-                            "Predicted values written to incident_memory",
-                            incident_id=incident_uuid_str,
-                            predicted_outage_hrs=mem.predicted_outage_hrs,
-                            predicted_cost=mem.predicted_cost,
-                        )
+                mem_obj.predicted_outage_hrs = preds.get("predicted_outage_hrs")
+                mem_obj.predicted_cost = preds.get("estimated_repair_cost")
+                await db_session.commit()
+                logger.info(
+                    "Predicted values written to incident_memory",
+                    incident_id=state.get("incident_id"),
+                    predicted_outage_hrs=mem_obj.predicted_outage_hrs,
+                    predicted_cost=mem_obj.predicted_cost,
+                )
             except Exception as write_err:
-                # Non-critical: don't crash the workflow if memory write fails
                 logger.warning(
                     "Could not write predicted values to incident_memory",
                     error=str(write_err),

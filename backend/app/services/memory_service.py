@@ -122,8 +122,7 @@ async def retrieve_similar_incidents(current_incident: dict, k: int = 3) -> List
         retriever = get_retriever(k)
 
         query = f"{(current_incident.get('incident_type') or current_incident.get('sensor_type') or '')} similar historical incidents"
-        # retriever may be sync; attempt sync call first
-        docs = retriever.get_relevant_documents(query)
+        docs = retriever.invoke(query)
         results = []
         for doc in docs[:k]:
             try:

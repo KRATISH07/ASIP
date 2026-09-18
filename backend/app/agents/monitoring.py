@@ -2,7 +2,6 @@
 MonitoringAgent: analyses raw sensor data, detects anomalies,
 classifies incident type, estimates severity and confidence.
 """
-import json
 from datetime import datetime, timezone
 from app.agents.state import ASIPState
 from app.core.logging import get_logger

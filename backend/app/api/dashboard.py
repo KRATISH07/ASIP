@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func
+from sqlalchemy import select, func, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
 from app.dependencies import require_roles
@@ -11,6 +11,11 @@ from app.schemas.dashboard import DashboardOut, DashboardKPI, RecentIncidentSumm
 from app.db.models.user import User, UserRole
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+
+
+def _build_date_range(today_start: datetime, days: int) -> list[str]:
+    """Return a list of YYYY-MM-DD strings covering the last `days` days (oldest first)."""
+    return [(today_start - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days - 1, -1, -1)]
 
 
 @router.get("/", response_model=DashboardOut, summary="Get dashboard summary")
@@ -85,18 +90,25 @@ async def get_dashboard(
     sev_rows = (await db.execute(sev_q)).all()
     severity_dist = {row[0].value: row[1] for row in sev_rows}
 
-    # 7-day incident trend
-    trend = []
-    for i in range(6, -1, -1):
-        day = today_start - timedelta(days=i)
-        day_end = day + timedelta(days=1)
-        count = (await db.execute(
-            select(func.count(Incident.id)).where(
-                Incident.detected_at >= day,
-                Incident.detected_at < day_end,
-            )
-        )).scalar_one()
-        trend.append({"date": day.strftime("%Y-%m-%d"), "count": count})
+    # 7-day incident trend — single GROUP BY query instead of 7 separate SELECTs
+    window_start = today_start - timedelta(days=6)
+    trend_q = (
+        select(
+            cast(Incident.detected_at, Date).label("day"),
+            func.count(Incident.id).label("count"),
+        )
+        .where(Incident.detected_at >= window_start)
+        .group_by(cast(Incident.detected_at, Date))
+    )
+    trend_rows = {
+        str(row.day): row.count
+        for row in (await db.execute(trend_q)).all()
+    }
+    # Fill in zeros for days with no incidents
+    trend = [
+        {"date": d, "count": trend_rows.get(d, 0)}
+        for d in _build_date_range(today_start, 7)
+    ]
 
     return DashboardOut(
         kpi=DashboardKPI(
@@ -120,18 +132,24 @@ async def get_analytics(
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # 30-day trend
-    trend = []
-    for i in range(29, -1, -1):
-        day = today_start - timedelta(days=i)
-        day_end = day + timedelta(days=1)
-        count = (await db.execute(
-            select(func.count(Incident.id)).where(
-                Incident.detected_at >= day,
-                Incident.detected_at < day_end,
-            )
-        )).scalar_one()
-        trend.append({"date": day.strftime("%Y-%m-%d"), "count": count})
+    # 30-day trend — single GROUP BY query instead of 30 separate SELECTs
+    window_start = today_start - timedelta(days=29)
+    trend_q = (
+        select(
+            cast(Incident.detected_at, Date).label("day"),
+            func.count(Incident.id).label("count"),
+        )
+        .where(Incident.detected_at >= window_start)
+        .group_by(cast(Incident.detected_at, Date))
+    )
+    trend_rows = {
+        str(row.day): row.count
+        for row in (await db.execute(trend_q)).all()
+    }
+    trend = [
+        {"date": d, "count": trend_rows.get(d, 0)}
+        for d in _build_date_range(today_start, 30)
+    ]
 
     # Severity distribution
     sev_rows = (await db.execute(
@@ -152,3 +170,6 @@ async def get_analytics(
         severity_distribution=severity_dist,
         incident_type_distribution=type_dist,
     )
+
+
+

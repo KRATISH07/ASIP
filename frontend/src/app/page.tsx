@@ -14,14 +14,15 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+const _NOW = new Date();
 const MOCK: DashboardOut = {
   kpi: { total_incidents: 47, active_incidents: 8, critical_incidents: 3, resolved_today: 5 },
   recent_incidents: [
-    { id: "1", type: "water_pressure_drop", severity: "critical", status: "analyzing", tower_name: "Tower A", detected_at: new Date().toISOString() },
-    { id: "2", type: "power_outage", severity: "high", status: "in_progress", tower_name: "Tower B", detected_at: new Date(Date.now() - 3600000).toISOString() },
-    { id: "3", type: "tank_overflow", severity: "medium", status: "resolved", tower_name: "Tower C", detected_at: new Date(Date.now() - 7200000).toISOString() },
-    { id: "4", type: "power_overload", severity: "high", status: "action_planned", tower_name: "Tower A", detected_at: new Date(Date.now() - 10800000).toISOString() },
-    { id: "5", type: "water_shortage", severity: "critical", status: "escalated", tower_name: "Tower B", detected_at: new Date(Date.now() - 14400000).toISOString() },
+    { id: "1", type: "water_pressure_drop", severity: "critical", status: "analyzing", tower_name: "Tower A", detected_at: _NOW.toISOString() },
+    { id: "2", type: "power_outage", severity: "high", status: "in_progress", tower_name: "Tower B", detected_at: new Date(_NOW.getTime() - 3600000).toISOString() },
+    { id: "3", type: "tank_overflow", severity: "medium", status: "resolved", tower_name: "Tower C", detected_at: new Date(_NOW.getTime() - 7200000).toISOString() },
+    { id: "4", type: "power_overload", severity: "high", status: "action_planned", tower_name: "Tower A", detected_at: new Date(_NOW.getTime() - 10800000).toISOString() },
+    { id: "5", type: "water_shortage", severity: "critical", status: "escalated", tower_name: "Tower B", detected_at: new Date(_NOW.getTime() - 14400000).toISOString() },
   ],
   incident_trend: [
     { date: "Mon", count: 4 }, { date: "Tue", count: 9 }, { date: "Wed", count: 6 },
@@ -59,7 +60,9 @@ export default function Dashboard() {
     dashboardApi.getSummary(token).then(setData).catch(() => setData(MOCK));
   }, [token]);
 
-  const greeting = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening";
+  const now = new Date();
+  const greeting = now.getHours() < 12 ? "morning" : now.getHours() < 17 ? "afternoon" : "evening";
+  const todayLabel = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   const kpis = [
     { label: "Total Incidents", value: data.kpi.total_incidents, delta: "+12% from last month", icon: Activity, color: "text-violet-400", accent: "kpi-violet", href: "/incidents" },
@@ -82,7 +85,7 @@ export default function Dashboard() {
           <span className="text-zinc-700">|</span>
           <span className="text-zinc-500 flex items-center gap-1"><Cpu className="w-3 h-3" /> 12 IoT Sensors</span>
         </div>
-        <span className="text-zinc-600">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+        <span className="text-zinc-600">{todayLabel}</span>
       </div>
 
       <div className="p-5 lg:p-7 space-y-5 animate-fade-in">

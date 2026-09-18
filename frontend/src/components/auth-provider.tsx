@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isDemoResident = (email === "resident1@asip.ai" || email.includes("resident")) && password === "password123";
       const isDemoGateway = (email === "gateway@asip.ai" || email.includes("gateway")) && password === "password123";
 
-      if (isDemoAdmin || isDemoResident || isDemoGateway || email.length > 0) {
+      if (isDemoAdmin || isDemoResident || isDemoGateway) {
         const dummyToken = "demo-sandbox-token";
         const dummyRole = isDemoResident ? "resident" : isDemoGateway ? "sensor_gateway" : "admin";
         const dummyProfile: UserProfile = {

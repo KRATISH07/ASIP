@@ -8,8 +8,28 @@ from sqlalchemy import select
 
 logger = get_logger("tenant_middleware")
 
-# Thread-safe in-memory cache to avoid DB round-trips on every HTTP request
-_TENANT_CACHE = {}
+# Thread-safe in-memory cache to avoid DB round-trips on every HTTP request.
+# Bounded to _CACHE_MAX_SIZE to prevent unbounded memory growth in large multi-tenant
+# deployments. Uses OrderedDict for simple LRU eviction (oldest entry dropped first).
+_CACHE_MAX_SIZE = 512
+_TENANT_CACHE: "OrderedDict[str, str]" = None  # lazily initialised below
+
+
+def _get_tenant_cache():
+    global _TENANT_CACHE
+    if _TENANT_CACHE is None:
+        from collections import OrderedDict
+        _TENANT_CACHE = OrderedDict()
+    return _TENANT_CACHE
+
+
+def _cache_set(slug: str, schema: str) -> None:
+    cache = _get_tenant_cache()
+    if slug in cache:
+        cache.move_to_end(slug)
+    cache[slug] = schema
+    if len(cache) > _CACHE_MAX_SIZE:
+        cache.popitem(last=False)  # evict oldest entry
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
@@ -23,18 +43,19 @@ class TenantMiddleware(BaseHTTPMiddleware):
         
         schema_name = "public"
         if tenant_slug != "public":
-            if tenant_slug in _TENANT_CACHE:
-                schema_name = _TENANT_CACHE[tenant_slug]
+            cache = _get_tenant_cache()
+            if tenant_slug in cache:
+                schema_name = cache[tenant_slug]
             else:
                 try:
                     async with AsyncSessionFactory() as db:
                         stmt = select(Tenant).where(Tenant.slug == tenant_slug).limit(1)
                         res = await db.execute(stmt)
                         tenant = res.scalar_one_or_none()
-                        
+
                         if tenant:
                             schema_name = tenant.schema_name
-                            _TENANT_CACHE[tenant_slug] = schema_name
+                            _cache_set(tenant_slug, schema_name)
                         elif tenant_slug == "default":
                             # Default fallback if tenant registry is not yet populated
                             schema_name = "society_default"
