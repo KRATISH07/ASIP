@@ -88,7 +88,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         *_extra_origins,
     ],
-    allow_origin_regex=r"https://.*\.railway\.app",   # all Railway subdomains
+    allow_origin_regex=r"https://(.*\.railway\.app|.*\.vercel\.app|.*\.onrender\.com)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
