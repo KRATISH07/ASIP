@@ -18,5 +18,8 @@ COPY backend/ .
 
 EXPOSE 8000
 
-# Run Alembic migrations then start server
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Run Alembic migrations then start server.
+# We target the specific revision to avoid "multiple heads" error on fresh DBs.
+# After running the create_all migration, we stamp all other heads as applied
+# so Alembic considers the schema fully current.
+CMD alembic upgrade 0000_create_all && alembic stamp heads && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

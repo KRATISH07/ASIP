@@ -19,4 +19,4 @@ COPY . .
 EXPOSE 8000
 
 # Run Alembic migrations then start server
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD alembic upgrade 0000_create_all && alembic stamp heads && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
