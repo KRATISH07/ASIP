@@ -78,10 +78,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
+# CORS — allow localhost dev + all Railway deployments
+import os as _os
+_extra_origins = [o.strip() for o in _os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        *_extra_origins,
+    ],
+    allow_origin_regex=r"https://.*\.railway\.app",   # all Railway subdomains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
