@@ -1,12 +1,21 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "installCommand": "npm install",
-  "framework": "nextjs",
   "rewrites": [
     {
       "source": "/api/:path*",
       "destination": "https://asip-backend.onrender.com/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "web"
+      }
     }
-  ]
+  ],
+  "services": {
+    "web": {
+      "root": ".",
+      "framework": "nextjs"
+    }
+  }
 }
