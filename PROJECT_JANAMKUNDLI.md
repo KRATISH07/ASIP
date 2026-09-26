@@ -2506,17 +2506,25 @@ For new environments, developer runs `python3 seed.py` once.
 
 | Service | URL | Notes |
 |---------|-----|-------|
-| **Frontend (Vercel)** | https://frontend-pi-seven-20.vercel.app | Always live, no sleep |
+| **🚀 Frontend (Primary)** | **https://asip-ai.vercel.app** | Clean URL — use this one |
+| Frontend (alias 2) | https://asip-app.vercel.app | Works too |
+| Frontend (alias 3) | https://asip-platform.vercel.app | Works too |
+| Frontend (original) | https://frontend-pi-seven-20.vercel.app | Still works |
 | **Backend (Render)** | https://asip-fgin.onrender.com | Sleeps after 15 min idle |
 | **Swagger Docs** | https://asip-fgin.onrender.com/docs | Full API documentation |
 | **Health Check** | https://asip-fgin.onrender.com/health | Returns `{"status":"ok"}` |
 | **GitHub Repo** | https://github.com/KRATISH07/ASIP | Source of truth |
 | **Neon Dashboard** | https://console.neon.tech | Database management |
 
+**How we got `asip-ai.vercel.app`:**
+`asip.vercel.app` was already taken by someone else.
+Used `vercel alias set <deployment-url> asip-ai.vercel.app` via CLI.
+All aliases point to the same Vercel deployment — changing one doesn't affect others.
+
 **Free tier limitations:**
 - Render backend sleeps after 15 min of no traffic → first request after sleep takes ~30s to wake up
 - Neon pauses compute after 5 min idle → first DB query after pause has ~1s cold start
-- Vercel hobby: 100GB bandwidth/month, unlimited deploys
+- Vercel hobby: 100GB bandwidth/month, unlimited deploys, unlimited aliases
 
 ---
 
