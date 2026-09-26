@@ -2596,3 +2596,160 @@ ASIP_CREDENTIALS.md
 
 *Section 26 added: September 26, 2026 — Deployment Phase complete*
 
+---
+
+## 27. UI Empty States Sprint — September 26, 2026
+
+> **"Ek blank section se zyada confusing kuch nahi hota."**
+> Is sprint mein humne teeno incident detail sections ko fix kiya jo empty dikhte the.
+
+---
+
+### 27.1 Problem Statement
+
+User ne incident page open ki aur dekha:
+
+```
+AI Contractor Candidate Evaluation
+┌─────────────────────────────────────────────────┐
+│  No contractor candidates found matching         │
+│  specialization.                                 │
+└─────────────────────────────────────────────────┘
+
+[Root Cause Analysis section — missing entirely]
+
+[Solution Plan section — missing entirely]
+```
+
+Teen problems ek saath:
+1. **Contractor section** — empty text, no guidance
+2. **Root Cause Analysis** — `{selected.root_cause && (...)}` conditionally hidden, vanishes when no data
+3. **Solution Plan** — same conditional hide, vanishes when AI hasn't processed yet
+
+---
+
+### 27.2 Fix 1: Contractor Empty State
+
+**File:** `frontend/src/app/incidents/page.tsx` (line ~908)
+
+**Before:** `<p>No contractor candidates found matching specialization.</p>`
+
+**After:** Full rich UI with:
+- 🟡 Amber icon + "No contractors registered yet" explanation
+- 3 suggestion cards: Add Contractor (with link), Set Specializations, Seed Demo
+- 🟣 Violet info pill explaining Thompson Sampling activates once contractors added
+
+**Data fix alongside:** Seeded 5 demo contractors into Neon production DB:
+- Sharma Plumbing & Water Works (rating 4.7, 142 jobs)
+- PowerTech Electrical Solutions (rating 4.5, 98 jobs)
+- RapidFix Civil & Structural (rating 4.3, 67 jobs)
+- CoolAir HVAC Services (rating 4.6, 55 jobs)
+- SecurePro Security & CCTV (rating 4.4, 43 jobs)
+
+**Commit:** `be5c82c`
+
+---
+
+### 27.3 Fix 2: Root Cause Analysis — Always Visible
+
+**Before:** `{selected.root_cause && (<div>...</div>)}` — entire card disappears when no data
+
+**After:** Always renders. Content switches based on state:
+
+| State | What shows |
+|-------|-----------|
+| `status === "detected"` | 🟡 Amber pulsing dot — "AI Analysis Running…" |
+| `status === "analyzing"` | 🟣 Violet pulsing dot — "Deep Analysis in Progress" |
+| No data, other status | 🔍 Bullet list of probable causes based on `incident.type`:<br>water/pump → pump failure, valve blockage, pipeline leak, supply pressure<br>electrical/power → breaker trip, transformer overload, phase imbalance<br>other → sensor malfunction, wear & tear, external disruption |
+| Has real data | ✅ Shows actual `root_cause` text from DB (unchanged) |
+
+---
+
+### 27.4 Fix 3: Solution Plan — Always Visible
+
+**Before:** `{(selected.ai_decision?.action_plan || selected.ai_decision?.incident_summary) && (...)}` — entire card disappears
+
+**After:** Always renders. Content and border colour switch based on state:
+
+| State | Border | Content |
+|-------|--------|---------|
+| `detected` / `analyzing` | zinc-700 | 🟢 "Generating Solution Plan…" pulsing |
+| No AI data, other status | zinc-700 | 📋 5 numbered steps based on incident type:<br>water → pump inspection, isolate, notify, repair<br>electrical → check breakers, DG backup, balance phases<br>other → generic 5-step SOP |
+| Has AI decision | **emerald-500** | ✅ Cost prediction + duration + action plan (unchanged) |
+
+The border colour change (zinc → emerald) gives instant visual signal that AI has processed the incident.
+
+---
+
+### 27.5 Bug Found in Fix: TypeScript Field Name Error
+
+**Error:**
+```
+Type error: Property 'incident_type' does not exist on type 'IncidentOut'.
+```
+
+**Root Cause:** I used `selected.incident_type` but the actual TypeScript interface field is `selected.type`.
+
+**Fix:** `sed -i '' 's/selected\.incident_type/selected.type/g'` — 4 replacements in one command.
+
+**Lesson:** Always check the TypeScript interface before writing property access in TSX. A quick `grep "interface Incident"` would have caught this immediately.
+
+**Commit:** `67fc03e`
+
+---
+
+### 27.6 All Three Sections — Final State
+
+Every incident now always shows all 3 sections — they never disappear. They're intelligent:
+- **Detected recently** → animated pulsing dots showing AI is working
+- **Older, no AI run** → curated suggestions/SOPs based on incident category
+- **AI processed** → full real data from the 7-agent pipeline
+
+This is production-grade UX: users always have something actionable to look at.
+
+---
+
+## 28. Custom Domain & Vercel Aliases — September 26, 2026
+
+### 28.1 The Problem
+
+Original Vercel URL: `frontend-pi-seven-20.vercel.app` — not shareable, looks auto-generated.
+
+### 28.2 What We Tried
+
+| Alias | Result |
+|-------|--------|
+| `asip.vercel.app` | ❌ Already taken by someone else |
+| `asip-ai.vercel.app` | ✅ Available — **set as primary** |
+| `asip-app.vercel.app` | ✅ Available — secondary alias |
+| `asip-platform.vercel.app` | ✅ Available — tertiary alias |
+| `asipapp.vercel.app` | ✅ Available |
+
+**Command used:**
+```bash
+vercel alias set frontend-pi-seven-20.vercel.app asip-ai.vercel.app
+```
+
+All aliases point to the same deployment. Adding more aliases doesn't affect existing ones.
+
+### 28.3 Why Not asip.com?
+
+`asip.com` would cost ~$15-20/year. Staying free for now.
+If a paid domain is purchased later (e.g. `asipai.in` ~₹900/year), connecting it to Vercel takes 2 minutes:
+```bash
+vercel domains add asipai.in
+# Then add CNAME record in domain registrar pointing to cname.vercel-dns.com
+```
+
+### 28.4 Current Canonical URL
+
+**Primary → https://asip-ai.vercel.app**
+
+All documentation, credentials file, and share links use this URL going forward.
+
+---
+
+*Sections 27–28 added: September 26, 2026*
+*Document total: ~2650 lines | ~114KB*
+*Repository: https://github.com/KRATISH07/ASIP*
+
