@@ -732,59 +732,192 @@ function IncidentsPageContent() {
               ))}
             </div>
 
-            {/* Root cause */}
-            {selected.root_cause && (
-              <div className="glass-card p-4">
-                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Root Cause Analysis</p>
-                <p className="text-sm text-zinc-200">{selected.root_cause}</p>
+            {/* Root Cause Analysis */}
+            <div className="glass-card p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0015.803 15.803z" />
+                </svg>
+                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Root Cause Analysis</p>
               </div>
-            )}
-
-            {/* Solution Suggestion & AI Predictions */}
-            {(selected.ai_decision?.action_plan || selected.ai_decision?.incident_summary) && (
-              <div className="glass-card p-5 space-y-4 border-l-4 border-l-emerald-500">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Solution Plan</p>
-                  {selected.ai_decision?.estimated_resolution_hrs && (
-                    <span className="text-xs text-emerald-400 font-medium bg-emerald-500/20 ring-1 ring-emerald-500/30 px-2.5 py-0.5 rounded-full">
-                      Est: {selected.ai_decision.estimated_resolution_hrs}h
-                    </span>
+              {selected.root_cause ? (
+                <p className="text-sm text-zinc-200 leading-relaxed">{selected.root_cause}</p>
+              ) : (
+                <div className="space-y-3">
+                  {selected.status === "detected" ? (
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                      <div className="mt-0.5 w-5 h-5 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-amber-300">AI Analysis Running…</p>
+                        <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">
+                          The 7-node LangGraph pipeline is analyzing sensor patterns, historical data, and incident context to determine the probable root cause.
+                        </p>
+                      </div>
+                    </div>
+                  ) : selected.status === "analyzing" ? (
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-violet-500/5 border border-violet-500/10">
+                      <div className="mt-0.5 w-5 h-5 rounded-full bg-violet-500/10 flex items-center justify-center shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-violet-300">Deep Analysis in Progress</p>
+                        <p className="text-[11px] text-zinc-500 mt-0.5">Correlating sensor history, weather patterns, and past incidents of this type…</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                        <span className="text-base mt-0.5">🔍</span>
+                        <div>
+                          <p className="text-xs font-semibold text-zinc-300">Root cause not yet identified</p>
+                          <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">
+                            Possible causes based on incident type:
+                          </p>
+                          <ul className="mt-1.5 space-y-1">
+                            {(selected.incident_type === "water" || selected.incident_type === "pump"
+                              ? ["Pump motor failure / overheating", "Valve blockage or jamming", "Pipeline leak or burst", "Low municipal supply pressure"]
+                              : selected.incident_type === "electrical" || selected.incident_type === "power"
+                              ? ["Circuit breaker trip", "Transformer overload", "Phase imbalance", "Faulty distribution panel"]
+                              : ["Sensor malfunction", "Equipment wear & tear", "External supply disruption", "Manual override / human error"]
+                            ).map((cause, i) => (
+                              <li key={i} className="flex items-center gap-1.5 text-[11px] text-zinc-400">
+                                <span className="w-1 h-1 rounded-full bg-zinc-500 shrink-0" />{cause}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-zinc-600 text-center">Run AI analysis or add root cause via the Feedback form after resolution.</p>
+                    </div>
                   )}
                 </div>
+              )}
+            </div>
 
-                {/* AI Predictions Row */}
-                {selected.ai_decision?.prediction && (
-                  <div className="grid grid-cols-2 gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/[0.06]">
-                    <div>
-                      <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Predicted Cost</p>
-                      <p className="text-sm font-bold text-white mt-1">
-                        ₹{selected.ai_decision.prediction.estimated_cost?.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Predicted Duration</p>
-                      <p className="text-sm font-bold text-white mt-1">
-                        {selected.ai_decision.prediction.predicted_outage_hrs?.toFixed(1)} hrs
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {selected.ai_decision?.incident_summary && (
-                  <p className="text-sm text-zinc-200 font-medium leading-relaxed">
-                    {selected.ai_decision.incident_summary}
-                  </p>
-                )}
-                {selected.ai_decision?.action_plan && (
-                  <div className="pt-2 border-t border-white/[0.06]">
-                    <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Action Steps</p>
-                    <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">
-                      {selected.ai_decision.action_plan}
-                    </p>
-                  </div>
+            {/* Solution Plan */}
+            <div className={`glass-card p-5 space-y-4 border-l-4 ${
+              selected.ai_decision?.action_plan || selected.ai_decision?.incident_summary
+                ? "border-l-emerald-500"
+                : "border-l-zinc-700"
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Solution Plan</p>
+                </div>
+                {selected.ai_decision?.estimated_resolution_hrs && (
+                  <span className="text-xs text-emerald-400 font-medium bg-emerald-500/20 ring-1 ring-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                    Est: {selected.ai_decision.estimated_resolution_hrs}h
+                  </span>
                 )}
               </div>
-            )}
+
+              {(selected.ai_decision?.action_plan || selected.ai_decision?.incident_summary) ? (
+                <>
+                  {/* AI Predictions Row */}
+                  {selected.ai_decision?.prediction && (
+                    <div className="grid grid-cols-2 gap-3 bg-white/[0.03] p-3 rounded-xl border border-white/[0.06]">
+                      <div>
+                        <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Predicted Cost</p>
+                        <p className="text-sm font-bold text-white mt-1">
+                          ₹{selected.ai_decision.prediction.estimated_cost?.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Predicted Duration</p>
+                        <p className="text-sm font-bold text-white mt-1">
+                          {selected.ai_decision.prediction.predicted_outage_hrs?.toFixed(1)} hrs
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {selected.ai_decision?.incident_summary && (
+                    <p className="text-sm text-zinc-200 font-medium leading-relaxed">
+                      {selected.ai_decision.incident_summary}
+                    </p>
+                  )}
+                  {selected.ai_decision?.action_plan && (
+                    <div className="pt-2 border-t border-white/[0.06]">
+                      <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">Action Steps</p>
+                      <p className="text-sm text-zinc-300 whitespace-pre-line leading-relaxed">
+                        {selected.ai_decision.action_plan}
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-3">
+                  {/* Status-aware empty state */}
+                  {selected.status === "detected" || selected.status === "analyzing" ? (
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                      <div className="mt-0.5 w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-emerald-300">Generating Solution Plan…</p>
+                        <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">
+                          AI agent is formulating step-by-step action plan, cost estimate, and resolution timeline based on historical incidents of this type.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* Generic suggested steps based on incident type */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                        <span className="text-base mt-0.5">📋</span>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-zinc-300">Suggested response steps</p>
+                          <ol className="mt-1.5 space-y-1.5 list-none">
+                            {(selected.incident_type === "water" || selected.incident_type === "pump"
+                              ? [
+                                  "Dispatch technician to inspect pump room and check motor vitals",
+                                  "Isolate faulty pump unit; switch to backup pump if available",
+                                  "Check pipeline pressure gauges across affected towers",
+                                  "Notify residents via app of expected downtime",
+                                  "Schedule repair and test system pressure post-fix",
+                                ]
+                              : selected.incident_type === "electrical" || selected.incident_type === "power"
+                              ? [
+                                  "Check main distribution board and circuit breakers",
+                                  "Isolate faulty phase; activate DG backup if available",
+                                  "Inspect transformer load and measure phase voltages",
+                                  "Notify residents of outage and ETA",
+                                  "Reset breakers after load is balanced; test all floors",
+                                ]
+                              : [
+                                  "Identify and isolate the affected system or zone",
+                                  "Dispatch relevant maintenance staff immediately",
+                                  "Assess damage scope and gather equipment",
+                                  "Execute repair and verify resolution",
+                                  "Document incident and update maintenance log",
+                                ]
+                            ).map((step, i) => (
+                              <li key={i} className="flex items-start gap-2 text-[11px] text-zinc-400">
+                                <span className="shrink-0 w-4 h-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[9px] font-bold text-emerald-400 mt-0.5">{i + 1}</span>
+                                {step}
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-2.5 rounded-xl bg-zinc-800/50 border border-white/[0.05]">
+                        <svg className="w-3.5 h-3.5 text-zinc-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                        <p className="text-[10px] text-zinc-500">
+                          AI-generated plan will appear here once the agent pipeline processes this incident.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
 
             {/* Contractor */}
             {selected.contractor_assignment && (
