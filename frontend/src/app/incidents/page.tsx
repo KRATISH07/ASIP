@@ -776,9 +776,9 @@ function IncidentsPageContent() {
                             Possible causes based on incident type:
                           </p>
                           <ul className="mt-1.5 space-y-1">
-                            {(selected.incident_type === "water" || selected.incident_type === "pump"
+                            {(selected.type === "water" || selected.type === "pump"
                               ? ["Pump motor failure / overheating", "Valve blockage or jamming", "Pipeline leak or burst", "Low municipal supply pressure"]
-                              : selected.incident_type === "electrical" || selected.incident_type === "power"
+                              : selected.type === "electrical" || selected.type === "power"
                               ? ["Circuit breaker trip", "Transformer overload", "Phase imbalance", "Faulty distribution panel"]
                               : ["Sensor malfunction", "Equipment wear & tear", "External supply disruption", "Manual override / human error"]
                             ).map((cause, i) => (
@@ -872,7 +872,7 @@ function IncidentsPageContent() {
                         <div className="flex-1">
                           <p className="text-xs font-semibold text-zinc-300">Suggested response steps</p>
                           <ol className="mt-1.5 space-y-1.5 list-none">
-                            {(selected.incident_type === "water" || selected.incident_type === "pump"
+                            {(selected.type === "water" || selected.type === "pump"
                               ? [
                                   "Dispatch technician to inspect pump room and check motor vitals",
                                   "Isolate faulty pump unit; switch to backup pump if available",
@@ -880,7 +880,7 @@ function IncidentsPageContent() {
                                   "Notify residents via app of expected downtime",
                                   "Schedule repair and test system pressure post-fix",
                                 ]
-                              : selected.incident_type === "electrical" || selected.incident_type === "power"
+                              : selected.type === "electrical" || selected.type === "power"
                               ? [
                                   "Check main distribution board and circuit breakers",
                                   "Isolate faulty phase; activate DG backup if available",
