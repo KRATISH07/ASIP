@@ -2268,8 +2268,323 @@ Yahi ASIP ki asli "intelligence" hai.
 
 ---
 
-*PROJECT_JANAMKUNDLI.md — Complete as of September 2025*
+*PROJECT_JANAMKUNDLI.md — Complete as of September 2025 (+ Deployment Phase: September 2026)*
 *Backend: /Users/kratish/study/projects/ASIP/backend/*
 *Frontend: /Users/kratish/study/projects/ASIP/frontend/*
-*Development period: April 2025 – July 2025 (+ September 2025 audit)*
+*Development period: April 2025 – July 2025 (+ September 2025 audit + September 2026 deployment)*
 *Repository: https://github.com/KRATISH07/ASIP*
+
+---
+
+## 26. Production Deployment Phase — September 2026
+
+> **"Code likhna alag baat hai, deploy karna alag baat hai."**
+> Is section mein woh poora journey hai jab hum ASIP ko pehli baar live internet pe laaye.
+
+---
+
+### 26.1 Deployment Platform Decision
+
+**Challenge:** ASIP ka stack complex hai — FastAPI backend, Next.js frontend, PostgreSQL database (multi-tenant), ChromaDB vector DB. Sab free mein deploy karna tha.
+
+**Options considered:**
+
+| Platform | Pros | Cons | Decision |
+|----------|------|------|----------|
+| Railway | All-in-one | Requires payment for persistent deployment | ❌ Rejected |
+| Render + Neon + Vercel | 100% free forever | 3 separate platforms | ✅ Chosen |
+| Heroku | Familiar | Removed free tier | ❌ Rejected |
+| Fly.io | Container-native | Complex setup | ❌ Rejected |
+
+**Final stack:**
+```
+Frontend  →  Vercel       (Next.js, free forever, no sleep)
+Backend   →  Render.com   (FastAPI, free tier, sleeps after 15 min)
+Database  →  Neon.tech    (PostgreSQL serverless, free, no expiry)
+AI Memory →  Skipped      (ChromaDB not deployed — rule-based fallback)
+```
+
+---
+
+### 26.2 Files Created for Deployment
+
+```
+ASIP/
+├── Dockerfile.backend          ← Root-context Dockerfile for Render
+│                                  (copies from backend/ since Render
+│                                   builds from repo root)
+├── render.yaml                 ← Render blueprint (service config,
+│                                   env vars, free plan declaration)
+├── backend/
+│   ├── Dockerfile              ← Updated: runs alembic before uvicorn
+│   ├── railway.json            ← Railway config (kept for future use)
+│   └── .railwayignore          ← Slim Docker context
+└── frontend/
+    ├── Dockerfile              ← Multi-stage Next.js production build
+    ├── vercel.json             ← Vercel config (minimal — Next.js auto-detected)
+    ├── railway.json            ← Railway config (kept for future use)
+    └── next.config.ts          ← Added: output: "standalone" for Docker
+```
+
+**Key decisions in Dockerfile.backend:**
+```dockerfile
+# Run Alembic migrations THEN start server
+# Target specific revision — avoids "multiple heads" error
+CMD alembic upgrade 0000_create_all && alembic stamp heads && \
+    uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+```
+
+Why `${PORT:-8000}`? Render dynamically assigns a port via `$PORT` env var.
+If not set (local dev), falls back to 8000.
+
+---
+
+### 26.3 CORS Update for Production
+
+**Problem:** Frontend on `*.vercel.app` was blocked by backend CORS (only allowed `localhost:3000`).
+
+**Fix in `main.py`:**
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", *_extra_origins],
+    allow_origin_regex=r"https://(.*\.railway\.app|.*\.vercel\.app|.*\.onrender\.com)",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+Used `allow_origin_regex` instead of listing every possible Vercel subdomain — one regex covers all deployment URLs forever.
+
+---
+
+### 26.4 Deployment Bugs — All Found & Fixed
+
+#### Bug 1: Alembic Multiple Heads Error
+**Error:**
+```
+alembic.util.exc.CommandError: Multiple head revisions are present
+```
+**Root Cause:** We created a new `0000_create_all` migration with `down_revision=None` (a new branch root). The old migration chain also had its own root. Alembic found 2 heads and refused to run `upgrade head`.
+
+**Fix:**
+```bash
+# Instead of: alembic upgrade head
+# Do this:
+alembic upgrade 0000_create_all && alembic stamp heads
+```
+`stamp heads` marks all existing revision chains as "already applied" so future `upgrade head` calls work normally.
+
+**Lesson:** Never run `alembic upgrade head` on a fresh DB with multiple branches. Always target specific revision + stamp.
+
+---
+
+#### Bug 2: email-validator Missing
+**Error:**
+```
+ImportError: email-validator is not installed, run `pip install email-validator`
+```
+**Root Cause:** Pydantic v2 requires `email-validator` as an **explicit** dependency when using `EmailStr` fields. It was not in `requirements.txt`.
+
+**Fix:**
+```
+# requirements.txt
+email-validator==2.2.0
+```
+
+**Lesson:** Pydantic v2 split many optional deps. Always check `pydantic[email]` extras and explicitly list them.
+
+---
+
+#### Bug 3: "Could Not Validate Credentials" on Login
+**Error:** Every login returned 401 — "could not validate credentials"
+
+**Root Cause:** The Neon database was empty. We ran migrations (table structure ✅) but **never seeded any users**. So `admin@asip.ai`, `resident1@asip.ai` etc. literally did not exist in the DB.
+
+**Fix:** Wrote and ran a seed script locally against Neon:
+```python
+# Seeded 7 users + 1 tenant directly into production Neon DB
+DEMO_USERS = [
+    ("admin@asip.ai",       "admin123",    UserRole.admin),
+    ("manager@asip.ai",     "manager123",  UserRole.manager),
+    ("maintenance@asip.ai", "maint123",    UserRole.maintenance),
+    ("resident1@asip.ai",   "password123", UserRole.resident),
+    ("resident2@asip.ai",   "password123", UserRole.resident),
+    ("gateway@asip.ai",     "password123", UserRole.sensor_gateway),
+    ("contractor@asip.ai",  "password123", UserRole.contractor),
+]
+```
+
+Also seeded default tenant: `slug="default"`, `schema_name="public"`.
+
+**Lesson:** Migrations ≠ Seed data. Always have a separate seed script. Migrations create schema, seed data creates initial records.
+
+---
+
+#### Bug 4: passlib + modern bcrypt incompatibility (local Python 3.9)
+**Error when running seed script locally:**
+```
+(trapped) error reading bcrypt version
+AttributeError: module 'bcrypt' has no attribute '__about__'
+ValueError: password cannot be longer than 72 bytes
+```
+
+**Root Cause:** System Python 3.9 had old `passlib` (1.7.4) which is incompatible with modern `bcrypt` (4.x). The bcrypt module's internal API changed.
+
+**Fix:** Bypassed passlib entirely in the seed script, used `bcrypt` directly:
+```python
+import bcrypt
+def hash_pw(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+```
+
+**Note:** This was only for the one-time seed script. The backend itself uses passlib normally (inside Docker with correct versions).
+
+---
+
+#### Bug 5: "No contractor candidates found" — Empty State
+**Problem:** When clicking any incident in the frontend, the AI Contractor Candidate Evaluation section showed: *"No contractor candidates found matching specialization."* — a completely empty, unhelpful message.
+
+**Root Cause 1 (UI):** No empty state was designed. Just a single `<p>` tag.
+**Root Cause 2 (Data):** The contractors table was also empty — no contractors were in the database.
+
+**Fix 1 (UI):** Replaced the bare text with a rich empty state UI:
+- 🟡 Amber warning icon + clear explanation
+- 3 actionable suggestion cards:
+  - 👷 Add a Contractor → links to `/contractors`
+  - 🔧 Set Specializations (info)
+  - 📊 Seed Demo Contractors (info)
+- 🟣 Violet info pill: explains Thompson Sampling will activate once contractors exist
+
+**Fix 2 (Data):** Seeded 5 demo contractors into Neon:
+
+| Contractor | Specializations | Rating | Jobs Done |
+|-----------|----------------|--------|-----------|
+| Sharma Plumbing & Water Works | water, pump, pipeline, plumbing | ⭐ 4.7 | 142 |
+| PowerTech Electrical Solutions | electrical, power, generator | ⭐ 4.5 | 98 |
+| RapidFix Civil & Structural | civil, structural, waterproofing | ⭐ 4.3 | 67 |
+| CoolAir HVAC Services | hvac, ac, ventilation, cooling | ⭐ 4.6 | 55 |
+| SecurePro Security & CCTV | security, cctv, access_control | ⭐ 4.4 | 43 |
+
+Now water/pump incidents show Sharma Plumbing ranked #1 by Thompson Sampling.
+Power incidents show PowerTech ranked #1. AI ranking actually works end-to-end.
+
+---
+
+#### Bug 6: Vercel "Not Authorized" on redeploy
+**Error:**
+```
+Error: Not authorized
+Contact Support: https://vercel.link/help
+```
+**Root Cause:** Using `vercel --yes` with conflicting flags caused the CLI to lose scope.
+**Fix:** Use `vercel deploy --prod` (explicit deploy subcommand) instead of `vercel --yes --prod`.
+
+---
+
+### 26.5 Database Seeding Architecture
+
+**Decision:** Seed data is NOT in migrations. Why?
+
+```
+migrations/   → Schema only (tables, columns, indexes, constraints)
+seed data     → Separate script, run manually or as startup hook
+```
+
+**Reason:** Migrations are idempotent, versioned, and reversible.
+Seed data is environment-specific (prod vs dev vs test gets different data).
+Mixing them causes "INSERT fails because row already exists" errors on subsequent migration runs.
+
+**How we seed on Render:** The `CMD` in Dockerfile runs migrations but NOT seed data.
+Seed data was run once from local machine using the connection string.
+For new environments, developer runs `python3 seed.py` once.
+
+---
+
+### 26.6 Live Deployment URLs
+
+| Service | URL | Notes |
+|---------|-----|-------|
+| **Frontend (Vercel)** | https://frontend-pi-seven-20.vercel.app | Always live, no sleep |
+| **Backend (Render)** | https://asip-fgin.onrender.com | Sleeps after 15 min idle |
+| **Swagger Docs** | https://asip-fgin.onrender.com/docs | Full API documentation |
+| **Health Check** | https://asip-fgin.onrender.com/health | Returns `{"status":"ok"}` |
+| **GitHub Repo** | https://github.com/KRATISH07/ASIP | Source of truth |
+| **Neon Dashboard** | https://console.neon.tech | Database management |
+
+**Free tier limitations:**
+- Render backend sleeps after 15 min of no traffic → first request after sleep takes ~30s to wake up
+- Neon pauses compute after 5 min idle → first DB query after pause has ~1s cold start
+- Vercel hobby: 100GB bandwidth/month, unlimited deploys
+
+---
+
+### 26.7 Auto-Deploy Setup
+
+Both Render and Vercel auto-deploy on every push to `main`:
+
+```
+git push origin main
+    ↓
+GitHub webhook fires
+    ↓
+Render pulls new code → Docker build → alembic migrate → uvicorn start
+Vercel pulls new code → npm build → Next.js standalone → node server.js
+```
+
+No manual deploy step needed after initial setup.
+Every `git push` = new production deployment.
+
+---
+
+### 26.8 Private Credentials File
+
+Created `ASIP_CREDENTIALS.md` at project root — gitignored, never pushed to GitHub.
+Contains all deployment URLs, passwords, API keys, connection strings in one place.
+
+Added to `.gitignore`:
+```
+# Credentials file — NEVER commit this
+ASIP_CREDENTIALS.md
+```
+
+---
+
+### 26.9 Commit History — Deployment Phase
+
+| Commit | Message | What it did |
+|--------|---------|-------------|
+| `f7ee3e1` | docs: add PROJECT_JANAMKUNDLI.md | 2275-line complete engineering history |
+| `062d659` | deploy: add Railway deployment config | railway.json, Dockerfiles, CORS update |
+| `dd2b301` | deploy: free-tier setup (Vercel+Render+Neon) | render.yaml, vercel.json, Dockerfile.backend |
+| `34349f9` | deploy: add clean initial migration | 0000_create_all_tables.py, fix vercel.json |
+| `5dd66df` | fix(deploy): fix Alembic multiple-heads error | CMD: upgrade 0000_create_all && stamp heads |
+| `515d71a` | fix(deploy): add email-validator | requirements.txt += email-validator==2.2.0 |
+| `a115ab7` | chore: gitignore ASIP_CREDENTIALS.md | .gitignore += private credentials file |
+| `be5c82c` | fix(ui): replace empty contractor state | Rich suggestions UI + 5 contractors seeded |
+
+---
+
+### 26.10 Key Lessons Learned in Deployment
+
+1. **Migrations ≠ Seed data.** Always separate them. Don't put INSERT statements in migration files.
+
+2. **Multiple Alembic heads are silent in dev, catastrophic in prod.** Always check `alembic heads` before deploying.
+
+3. **CORS regex > static origins list.** `allow_origin_regex=r"https://.*\.vercel\.app"` covers all future preview deployments automatically.
+
+4. **passlib + modern bcrypt = incompatible on old Python.** Use bcrypt directly for scripts, or use Docker (which has the right versions).
+
+5. **Empty states are UX debt.** Every list/section needs a designed empty state — not just a `<p>` tag. Users don't know what to do when they see nothing.
+
+6. **Free tier is enough for demos and small societies.** Render free + Neon free + Vercel free = production-grade system at ₹0/month.
+
+7. **The Render `PORT` env var is mandatory.** Don't hardcode `--port 8000`. Use `${PORT:-8000}` so Render can assign its own port.
+
+8. **`vercel deploy --prod` != `vercel --prod --yes`.** The `--yes` flag in some CLI versions causes auth scope issues. Use explicit subcommand.
+
+---
+
+*Section 26 added: September 26, 2026 — Deployment Phase complete*
+
