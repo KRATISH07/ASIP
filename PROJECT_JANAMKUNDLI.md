@@ -2749,7 +2749,34 @@ All documentation, credentials file, and share links use this URL going forward.
 
 ---
 
-*Sections 27–28 added: September 26, 2026*
-*Document total: ~2650 lines | ~114KB*
+## 29. FIX: Vercel SSO Login Screen Redirect (Oct 7, 2026)
+
+### 29.1 Problem
+When opening `https://asip-ai.vercel.app`, users were greeted with a **Vercel account login screen** (`https://vercel.com/login?next=/sso-api?url=...`) instead of the ASIP project login page.
+
+### 29.2 Root Cause
+Vercel projects have **Deployment Protection / SSO Protection** enabled by default for aliases and non-custom preview deployments (`ssoProtection: {"deploymentType": "all_except_custom_domains"}`).
+Visitors without a logged-in Vercel developer session were redirected to Vercel's authentication portal before being allowed to view the project.
+
+### 29.3 Solution
+1. **Disabled Deployment Protection on Vercel:**
+   ```bash
+   vercel project protection disable frontend --sso
+   ```
+2. **Re-aliased to latest Production deployment:**
+   ```bash
+   vercel alias set frontend-2cw59cl1j-kratishmewada99-7664s-projects.vercel.app asip-ai.vercel.app
+   ```
+3. **Added `/login` redirect in `next.config.ts`:**
+   Redirects `/login` directly to `/` so navigating to `/login` immediately shows the ASIP login page.
+
+### 29.4 Verification
+- `https://asip-ai.vercel.app` → `HTTP 200` (Loads ASIP login directly)
+- `https://frontend-pi-seven-20.vercel.app` → `HTTP 200` (Loads ASIP login directly)
+
+---
+
+*Sections 27–29 added: October 7, 2026*
+*Document total: ~2800 lines | ~118KB*
 *Repository: https://github.com/KRATISH07/ASIP*
 
